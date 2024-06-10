@@ -1,5 +1,5 @@
 """
-1 Quanv + 2 fc
+1 Quanv(kernel) + 2 fc
 4 qubits, single encoding: windows(2*2)->RY
 """
 
@@ -22,15 +22,15 @@ def circuit(inputs, weights):
     :param weights: (i, j): weight for j-th qubit in i-th depth
     :return:
     """
-    for q in range(n_qubits):
-        qml.Hadamard(wires=q)
-        qml.RY(inputs[q], wires=q)
+    for qub in range(n_qubits):
+        qml.Hadamard(wires=qub)
+        qml.RY(inputs[qub], wires=qub)
 
     for layer in range(depth):
         for i in range(n_qubits):
-            qml.CRZ(weights[layer, i], wires=[i, (i+1)%n_qubits])
-        for j in range(n_qubits, 2*n_qubits):
-            qml.RY(weights[layer, j], wires=[j%n_qubits])
+            qml.CRZ(weights[layer, i], wires=[i, (i + 1) % n_qubits])
+        for j in range(n_qubits, 2 * n_qubits):
+            qml.RY(weights[layer, j], wires=j % n_qubits)
 
     return [qml.expval(qml.PauliZ(i)) for i in range(n_qubits)]
 
@@ -38,20 +38,19 @@ def circuit(inputs, weights):
 class Quan2d(nn.Module):
     def __init__(self, kernel_size):
         super(Quan2d, self).__init__()
-        # 一个depth里有两种门
-        weight_shapes = {'weights': (depth, 2*n_qubits)}
-        qnode = qml.QNode(circuit, dev, interface='torch', diff_method='best')
+        weight_shapes = {"weights": (depth, 2 * n_qubits)}
+        qnode = qml.QNode(circuit, dev, interface='torch', diff_method="best")
         self.ql1 = qml.qnn.TorchLayer(qnode, weight_shapes)
         self.kernel_size = kernel_size
 
     def forward(self, x):
-        # x.shape: (batch_size, c, w, h)
-        x_list = []
-        for i in range(0, x.shape[2]-1, 2):
-            for j in range(0, x.shape[3]-1, 2):
-                cir_out = self.ql1(torch.flatten(x[:, :, i:i+self.kernel_size, j:j+self.kernel_size], start_dim=1))
-                x_list.append(cir_out)
-        x = torch.cat(x_list, dim=1)
+        assert len(x.shape) == 4  # (bs, c, w, h)
+        x_lst = []
+        for i in range(0, x.shape[2] - 1, 2):
+            for j in range(0, x.shape[3] - 1, 2):
+                x_lst.append(
+                    self.ql1(torch.flatten(x[:, :, i:i + self.kernel_size, j:j + self.kernel_size], start_dim=1)))
+        x = torch.cat(x_lst, dim=1)
         return x
 
 
@@ -64,7 +63,7 @@ class SingleEncoding(nn.Module):
 
     def forward(self, x):
         bs = x.shape[0]
-        x = x.view(bs, 1, 28, 28)
+        #x = x.view(bs, 1, 28, 28)
         x = self.qc(x)
         x = self.fc1(x)
         x = F.relu(x)

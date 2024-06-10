@@ -1,5 +1,5 @@
 """
-1 Quanv + 2 fc
+1 Quanv(kernel) + 2 fc
 4 qubits, multi encoding: windows(4*4)->multi [RZ, RY] (more single-qubit gates for each qubit)
 """
 

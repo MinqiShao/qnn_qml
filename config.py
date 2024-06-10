@@ -14,7 +14,7 @@ def get_arguments():
                                                                         'pure_single', 'pure_multi', 'quanv', 'inception',
                                                                         'quanv_iswap', 'hnn'])
     parser.add_argument('--binary_cla', type=bool, default=True)
-    parser.add_argument('--class_idx', type=list, default=[0, 1])
+    parser.add_argument('--class_idx', nargs='+', type=int, default=[0, 1])
     return parser.parse_args()
 
 
