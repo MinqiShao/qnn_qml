@@ -5,6 +5,8 @@ import argparse
 def get_arguments():
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('--version', type=str, default='tq', choices=['tq', 'qml'])
+
     parser.add_argument('--data_dir', type=str, default='data')
     parser.add_argument('--result_dir', type=str, default='tmp_results')
 

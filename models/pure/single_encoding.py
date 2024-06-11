@@ -16,6 +16,7 @@ depth = 2
 dev = qml.device('default.qubit', wires=n_qubits)
 
 
+@qml.qnode(dev, interface='torch')
 def circuit(inputs, weights):
     """
     :param inputs: (4,) single encoding, each param (feature) for each qubit
@@ -39,8 +40,8 @@ class Quan2d(nn.Module):
     def __init__(self, kernel_size):
         super(Quan2d, self).__init__()
         weight_shapes = {"weights": (depth, 2 * n_qubits)}
-        qnode = qml.QNode(circuit, dev, interface='torch', diff_method="best")
-        self.ql1 = qml.qnn.TorchLayer(qnode, weight_shapes)
+        # qnode = qml.QNode(circuit, dev, interface='torch', diff_method="best")
+        self.ql1 = qml.qnn.TorchLayer(circuit, weight_shapes)
         self.kernel_size = kernel_size
 
     def forward(self, x):
@@ -58,8 +59,8 @@ class SingleEncoding(nn.Module):
     def __init__(self, num_classes):
         super(SingleEncoding, self).__init__()
         self.qc = Quan2d(kernel_size=2)
-        self.fc1 = nn.Linear(in_features=n_qubits*14*14, out_features=40)
-        self.fc2 = nn.Linear(in_features=40, out_features=num_classes)
+        self.fc1 = nn.Linear(in_features=n_qubits*7*7, out_features=20)
+        self.fc2 = nn.Linear(in_features=20, out_features=num_classes)
 
     def forward(self, x):
         bs = x.shape[0]
