@@ -4,6 +4,7 @@ import torch.nn as nn
 from config import *
 from datasets.data_loader import load_dataset
 from models import *
+from tq_models import *
 import time
 from sklearn.metrics import accuracy_score
 
@@ -13,31 +14,46 @@ batch_size = 64
 lr = 0.01
 milestones = [10, 20]
 
-# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-device = torch.device('cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+#device = torch.device('cpu')
 
 
 if len(conf.class_idx) > 2:
     conf.binary_cla = False
 
 
+def load_model(v, model_type, class_idx):
+    print(f'!!loading model {model_type} of {v}')
+    # todo: num_classes -> len(class_idx)
+    num_classes = max(class_idx) + 1
+
+    if v == 'qml':
+        if model_type == 'classical':
+            model = Classical(num_classes=num_classes)
+        elif model_type == 'pure_single':
+            model = SingleEncoding(num_classes=num_classes)
+        elif model_type == 'pure_multi':
+            model = MultiEncoding(num_classes=num_classes)
+    elif v == 'tq':
+        if model_type == 'pure_single':
+            model = SingleEncoding_(num_classes=num_classes)
+        elif model_type == 'pure_multi':
+            model = MultiEncoding(num_classes=num_classes)
+    return model
+
+
 def train(model_type=conf.structure, bi=conf.binary_cla, class_idx=conf.class_idx):
     print(f'training on {device}')
 
-    # num_classes = len(class_idx)
-    # todo: num_classes -> len(class_idx)
-    num_classes = max(class_idx) + 1
-    if model_type == 'classical':
-        model = Classical(num_classes=num_classes)
-    elif model_type == 'pure_single':
-        model = SingleEncoding(num_classes=num_classes)
-    elif model_type == 'pure_multi':
-        model = MultiEncoding(num_classes=num_classes)
+    model = load_model(v=conf.version, model_type=model_type, class_idx=class_idx)
+
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones)
 
-    train_data, test_data = load_dataset(name=conf.dataset, dir=conf.data_dir, bi=bi, class_idx=class_idx)
+    # todo resize -> model
+    train_data, test_data = load_dataset(name=conf.dataset, dir=conf.data_dir, resize=True,
+                                         bi=bi, class_idx=class_idx)
 
     model = model.to(device)
     best_acc = 0
@@ -53,6 +69,7 @@ def train(model_type=conf.structure, bi=conf.binary_cla, class_idx=conf.class_id
         y_trues = []
         y_preds = []
         for i, (images, labels) in enumerate(train_data):
+            b_s_time = time.perf_counter()
             images, labels = images.to(device), labels.to(device)
             optimizer.zero_grad()
 
@@ -61,6 +78,9 @@ def train(model_type=conf.structure, bi=conf.binary_cla, class_idx=conf.class_id
 
             loss.backward()
             optimizer.step()
+
+            b_e_time = time.perf_counter()
+            print(f'\tBatch {i+1} : {b_e_time - b_s_time}')
 
             y_trues += labels.cpu().numpy().tolist()
             y_preds += outputs.data.cpu().numpy().argmax(axis=1).tolist()
