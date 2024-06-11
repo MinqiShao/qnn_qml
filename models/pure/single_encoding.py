@@ -56,10 +56,11 @@ class Quan2d(nn.Module):
 
 
 class SingleEncoding(nn.Module):
-    def __init__(self, num_classes):
+    def __init__(self, num_classes, img_size=28):
         super(SingleEncoding, self).__init__()
         self.qc = Quan2d(kernel_size=2)
-        self.fc1 = nn.Linear(in_features=n_qubits*7*7, out_features=20)
+        img_size = img_size / 2
+        self.fc1 = nn.Linear(in_features=n_qubits*img_size*img_size, out_features=20)
         self.fc2 = nn.Linear(in_features=20, out_features=num_classes)
 
     def forward(self, x):

@@ -59,16 +59,15 @@ class Quan2d(nn.Module):
 
 
 class MultiEncoding(nn.Module):
-    def __init__(self, num_classes):
+    def __init__(self, num_classes, img_size=28):
         super(MultiEncoding, self).__init__()
-        self.qc = Quan2d(kernel_size=2)
-        self.fc1 = nn.Linear(in_features=n_qubits * 14 * 14, out_features=num_classes*2)
+        self.qc = Quan2d(kernel_size=kernel_size)
+        img_size = (img_size - kernel_size) / 2 + 1
+        self.fc1 = nn.Linear(in_features=n_qubits * img_size * img_size, out_features=num_classes*2)
         self.lr1 = nn.LeakyReLU(0.1)
         self.fc2 = nn.Linear(in_features=num_classes*2, out_features=num_classes)
 
     def forward(self, x):
-        bs = x.shape[0]
-        x = x.view(bs, 1, 28, 28)
         x = self.qc(x)
         x = self.fc1(x)
         x = self.lr1(x)

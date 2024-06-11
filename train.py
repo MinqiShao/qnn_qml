@@ -22,7 +22,7 @@ if len(conf.class_idx) > 2:
     conf.binary_cla = False
 
 
-def load_model(v, model_type, class_idx):
+def load_model(v, model_type, class_idx, data_size=28):
     print(f'!!loading model {model_type} of {v}')
     # todo: num_classes -> len(class_idx)
     num_classes = max(class_idx) + 1
@@ -31,28 +31,27 @@ def load_model(v, model_type, class_idx):
         if model_type == 'classical':
             model = Classical(num_classes=num_classes)
         elif model_type == 'pure_single':
-            model = SingleEncoding(num_classes=num_classes)
+            model = SingleEncoding(num_classes=num_classes, img_size=data_size)
         elif model_type == 'pure_multi':
-            model = MultiEncoding(num_classes=num_classes)
+            model = MultiEncoding(num_classes=num_classes, img_size=data_size)
     elif v == 'tq':
         if model_type == 'pure_single':
-            model = SingleEncoding_(num_classes=num_classes)
+            model = SingleEncoding_(device=device, num_classes=num_classes, img_size=data_size)
         elif model_type == 'pure_multi':
-            model = MultiEncoding(num_classes=num_classes)
+            model = MultiEncoding_(device=device, num_classes=num_classes, img_size=data_size)
     return model
 
 
 def train(model_type=conf.structure, bi=conf.binary_cla, class_idx=conf.class_idx):
     print(f'training on {device}')
 
-    model = load_model(v=conf.version, model_type=model_type, class_idx=class_idx)
+    model = load_model(v=conf.version, model_type=model_type, class_idx=class_idx, data_size=28)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones)
 
-    # todo resize -> model
-    train_data, test_data = load_dataset(name=conf.dataset, dir=conf.data_dir, resize=True,
+    train_data, test_data = load_dataset(name=conf.dataset, dir=conf.data_dir, resize=False,
                                          bi=bi, class_idx=class_idx)
 
     model = model.to(device)
