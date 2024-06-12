@@ -7,6 +7,7 @@ from models import *
 from tq_models import *
 import time
 from sklearn.metrics import accuracy_score
+from tqdm import tqdm
 
 conf = get_arguments()
 epochs = 20
@@ -15,7 +16,7 @@ lr = 0.01
 milestones = [10, 20]
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-#device = torch.device('cpu')
+# device = torch.device('cpu')
 
 
 if len(conf.class_idx) > 2:
@@ -39,8 +40,12 @@ def load_model(v, model_type, class_idx, data_size=28):
             model = SingleEncoding_(device=device, num_classes=num_classes, img_size=data_size)
         elif model_type == 'pure_multi':
             model = MultiEncoding_(device=device, num_classes=num_classes, img_size=data_size)
-        elif model_type == 'CCQC':
+        elif model_type == 'ccqc':
             model = CCQC_(device=device)
+        elif model_type == 'qcl':
+            model = QCL_(device=device)
+        elif model_type == 'pure_qcnn':
+            model = QCNN(device=device)
     return model
 
 
@@ -54,7 +59,7 @@ def train(model_type=conf.structure, bi=conf.binary_cla, class_idx=conf.class_id
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones)
 
     train_data, test_data = load_dataset(name=conf.dataset, dir=conf.data_dir, resize=False,
-                                         bi=bi, class_idx=class_idx)
+                                         bi=bi, class_idx=class_idx, scale=conf.data_scale)
 
     model = model.to(device)
     best_acc = 0
@@ -69,8 +74,7 @@ def train(model_type=conf.structure, bi=conf.binary_cla, class_idx=conf.class_id
 
         y_trues = []
         y_preds = []
-        for i, (images, labels) in enumerate(train_data):
-            b_s_time = time.perf_counter()
+        for (images, labels) in tqdm(train_data):
             images, labels = images.to(device), labels.to(device)
             optimizer.zero_grad()
 
@@ -79,9 +83,6 @@ def train(model_type=conf.structure, bi=conf.binary_cla, class_idx=conf.class_id
 
             loss.backward()
             optimizer.step()
-
-            b_e_time = time.perf_counter()
-            print(f'\tBatch {i+1} : {b_e_time - b_s_time}')
 
             y_trues += labels.cpu().numpy().tolist()
             y_preds += outputs.data.cpu().numpy().argmax(axis=1).tolist()

@@ -17,20 +17,17 @@ def get_transform(resize=True, to_size=14):
     return transforms_
 
 
-def load_dataset(name, dir, resize=True, bi=True, class_idx=[0, 1]):
+def load_dataset(name, dir, resize=False, bi=True, class_idx=[0, 1], scale=1.0):
     transform_ = get_transform(resize, 14)
     if name == 'mnist':
-        data_dir = dir + '/mnist'
-        train_set = datasets.MNIST(data_dir, train=True, download=True, transform=transform_)
-        test_set = datasets.MNIST(data_dir, train=False, download=True, transform=transform_)
+        train_set = datasets.MNIST(dir, train=True, download=True, transform=transform_)
+        test_set = datasets.MNIST(dir, train=False, download=True, transform=transform_)
     elif name == 'fashion_mnist':
-        data_dir = dir + '/fashion_mnist'
-        train_set = datasets.FashionMNIST(data_dir, train=True, download=True, transform=transform_)
-        test_set = datasets.FashionMNIST(data_dir, train=False, download=True, transform=transform_)
+        train_set = datasets.FashionMNIST(dir, train=True, download=True, transform=transform_)
+        test_set = datasets.FashionMNIST(dir, train=False, download=True, transform=transform_)
     elif name == 'emnist':
-        data_dir = dir + '/emnist'
-        train_set = datasets.EMNIST(data_dir, train=True, download=True, transform=transform_, split='digits')
-        test_set = datasets.EMNIST(data_dir, train=False, download=True, transform=transform_, split='digits')
+        train_set = datasets.EMNIST(dir, train=True, download=True, transform=transform_, split='digits')
+        test_set = datasets.EMNIST(dir, train=False, download=True, transform=transform_, split='digits')
 
     train_y = torch.tensor(train_set.targets)
     test_y = torch.tensor(test_set.targets)
@@ -46,10 +43,12 @@ def load_dataset(name, dir, resize=True, bi=True, class_idx=[0, 1]):
             train_idx = torch.cat((train_idx, torch.where(train_y == class_idx[i])[0]))
             test_idx = torch.cat((test_idx, torch.where(test_y == class_idx[i])[0]))
 
-    print(f'load {name} data for {len(class_idx)} classification, classes: {class_idx}, '
-          f'num of training data: {len(train_idx)}, num of testing data: {len(test_idx)}')
+    scaled_train_idx = train_idx[:int(len(train_idx) * scale)]
+    scaled_test_idx = test_idx[:int(len(test_idx) * scale)]
+    print(f'load {name} data for {len(class_idx)} classification, classes: {class_idx}, scale: {scale * 100}%, '
+          f'num of training data: {len(scaled_train_idx)}, num of testing data: {len(scaled_test_idx)}')
 
-    selected_train = DataLoader(Subset(train_set, train_idx[:1000]), batch_size=64, shuffle=True)
-    selected_test = DataLoader(Subset(test_set, test_idx[:1000]), batch_size=64)
+    selected_train = DataLoader(Subset(train_set, train_idx), batch_size=64, shuffle=True)
+    selected_test = DataLoader(Subset(test_set, test_idx), batch_size=64)
 
     return selected_train, selected_test

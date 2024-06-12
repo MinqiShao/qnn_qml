@@ -66,7 +66,7 @@ class SingleEncoding_(nn.Module):
         super().__init__()
         self.device = device
         self.qc = Quanv(kernel_size=2)
-        img_size = img_size / 2
+        img_size = int(img_size / 2)
         self.fc1 = nn.Linear(in_features=n_qubits * img_size * img_size, out_features=20)
         self.fc2 = nn.Linear(in_features=20, out_features=num_classes)
 

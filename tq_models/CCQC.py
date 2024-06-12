@@ -6,8 +6,6 @@ import torchquantum as tq
 from torchquantum.measurement import expval
 
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 
 
 n_qubits = 10
@@ -19,13 +17,16 @@ class CCQC_(tq.QuantumModule):
         super().__init__()
         self.device = device
         self.encoder = tq.AmplitudeEncoder()
+
         self.rx = tq.RX(has_params=True, trainable=True)
         self.rz = tq.RZ(has_params=True, trainable=True)
         # todo 原来是CP门
         self.crot = tq.CRot(has_params=True, trainable=True)
+
         self.measure = tq.MeasureAll(tq.PauliZ)
 
     def forward(self, input):
+        input = torch.flatten(input, start_dim=1)
         qdev = tq.QuantumDevice(n_wires=n_qubits, bsz=input.shape[0], device=self.device, record_op=True)
         self.encoder(qdev, input)
         for d in range(1, depth + 1):
