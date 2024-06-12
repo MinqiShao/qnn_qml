@@ -39,6 +39,8 @@ def load_model(v, model_type, class_idx, data_size=28):
             model = SingleEncoding_(device=device, num_classes=num_classes, img_size=data_size)
         elif model_type == 'pure_multi':
             model = MultiEncoding_(device=device, num_classes=num_classes, img_size=data_size)
+        elif model_type == 'CCQC':
+            model = CCQC_(device=device)
     return model
 
 

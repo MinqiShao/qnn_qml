@@ -8,11 +8,7 @@ from torchquantum.measurement import expval
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.optim as optim
-import numpy as np
-import time
-from sklearn.metrics import accuracy_score
-from datasets.data_loader import load_dataset
+
 
 n_qubits = 4
 depth = 2
