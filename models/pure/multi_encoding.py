@@ -62,7 +62,7 @@ class MultiEncoding(nn.Module):
     def __init__(self, num_classes, img_size=28):
         super(MultiEncoding, self).__init__()
         self.qc = Quan2d(kernel_size=kernel_size)
-        img_size = (img_size - kernel_size) / 2 + 1
+        img_size = int((img_size - kernel_size) / 2) + 1
         self.fc1 = nn.Linear(in_features=n_qubits * img_size * img_size, out_features=num_classes*2)
         self.lr1 = nn.LeakyReLU(0.1)
         self.fc2 = nn.Linear(in_features=num_classes*2, out_features=num_classes)

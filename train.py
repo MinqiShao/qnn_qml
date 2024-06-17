@@ -5,6 +5,7 @@ from config import *
 from datasets.data_loader import load_dataset
 from models import *
 from tq_models import *
+from tools import Log
 import time
 from sklearn.metrics import accuracy_score
 from tqdm import tqdm
@@ -13,17 +14,20 @@ conf = get_arguments()
 epochs = 20
 batch_size = 64
 lr = 0.01
-milestones = [10, 20]
+milestones = [5, 10, 15, 20]
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-# device = torch.device('cpu')
+
+if conf.version == 'tq':
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+else:
+    device = torch.device('cpu')
 
 
 if len(conf.class_idx) > 2:
     conf.binary_cla = False
 
 
-def load_model(v, model_type, class_idx, data_size=28):
+def load_model(v, model_type, class_idx, data_size=28, e_type='amplitude'):
     print(f'!!loading model {model_type} of {v}')
     # todo: num_classes -> len(class_idx)
     num_classes = max(class_idx) + 1
@@ -35,6 +39,8 @@ def load_model(v, model_type, class_idx, data_size=28):
             model = SingleEncoding(num_classes=num_classes, img_size=data_size)
         elif model_type == 'pure_multi':
             model = MultiEncoding(num_classes=num_classes, img_size=data_size)
+        elif model_type == 'quanv_iswap':
+            model = QCNNi()
     elif v == 'tq':
         if model_type == 'pure_single':
             model = SingleEncoding_(device=device, num_classes=num_classes, img_size=data_size)
@@ -46,6 +52,9 @@ def load_model(v, model_type, class_idx, data_size=28):
             model = QCL_(device=device)
         elif model_type == 'pure_qcnn':
             model = QCNN(device=device)
+        elif model_type == 'quanv_iswap':
+            assert num_classes == 2
+            model = QCNNi_(device=device)
     return model
 
 
@@ -58,17 +67,20 @@ def train(model_type=conf.structure, bi=conf.binary_cla, class_idx=conf.class_id
     optimizer = torch.optim.Adam(model.parameters(), lr)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones)
 
-    train_data, test_data = load_dataset(name=conf.dataset, dir=conf.data_dir, resize=False,
+    train_data, test_data = load_dataset(name=conf.dataset, dir=conf.data_dir, reduction=conf.reduction,
+                                         resize=conf.resize,
                                          bi=bi, class_idx=class_idx, scale=conf.data_scale)
 
     model = model.to(device)
     best_acc = 0
-    model_save_path = os.path.join(conf.result_dir, conf.dataset, model_type)
+    model_save_path = os.path.join(conf.result_dir, conf.dataset, conf.version, model_type)
     if not os.path.exists(model_save_path):
         os.makedirs(model_save_path)
-    model_save_path = os.path.join(model_save_path, str(class_idx) + '.pth')
+    log_path = os.path.join(model_save_path, 'log.txt')
+    log = Log(log_path)
+    model_save_path = os.path.join(model_save_path, conf.reduction + '_' + str(class_idx) + '.pth')
     for epoch in range(epochs):
-        print(f'===== Epoch {epoch + 1} =====')
+        log(f'===== Epoch {epoch + 1} =====\t')
         s_time = time.perf_counter()
         model.train()
 
@@ -89,7 +101,7 @@ def train(model_type=conf.structure, bi=conf.binary_cla, class_idx=conf.class_id
 
         e_time = time.perf_counter()
         train_acc = accuracy_score(y_trues, y_preds)
-        print('Train: Loss: {:.6f}, Acc: {:.6f}, lr: {:.6f}, Time: {:.2f}s'.format(loss.item(), train_acc,
+        log('Train: Loss: {:.6f}, Acc: {:.6f}, lr: {:.6f}, Time: {:.2f}s\t'.format(loss.item(), train_acc,
                                                                             optimizer.param_groups[0]['lr'],
                                                                             e_time - s_time))
 
@@ -106,11 +118,11 @@ def train(model_type=conf.structure, bi=conf.binary_cla, class_idx=conf.class_id
             y_trues += labels.cpu().numpy().tolist()
             y_preds += outputs.data.cpu().numpy().argmax(axis=1).tolist()
         test_acc = accuracy_score(y_trues, y_preds)
-        print('Test: Loss: {:.6f}, Acc: {:.6f}'.format(loss.item(), test_acc))
+        log('Test: Loss: {:.6f}, Acc: {:.6f}\t'.format(loss.item(), test_acc))
 
         if test_acc > best_acc:
             best_acc = test_acc
-            print('save best!!')
+            log('save best!!\t')
             torch.save(model.state_dict(), model_save_path)
 
 

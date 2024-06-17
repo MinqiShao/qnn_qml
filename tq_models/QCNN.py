@@ -71,7 +71,7 @@ class Conv2(tq.QuantumModule):
             self.cnot(qdev, wires=[i, i + 2])
             self.ry(qdev, wires=i)
             self.rz(qdev, wires=i + 2)
-            self.cnot(qdev, wires=[i + 2, 2])
+            self.cnot(qdev, wires=[i + 2, i])
             self.ry(qdev, wires=i)
             self.cnot(qdev, wires=[i, i + 2])
             self.u3(qdev, wires=i)
@@ -136,7 +136,7 @@ class QCNN(tq.QuantumModule):
         self.measure = tq.MeasureAll(tq.PauliZ)
 
     def forward(self, inputs):
-        inputs = torch.flatten(inputs, 1)
+        inputs = torch.flatten(inputs, start_dim=1)
         qdev = tq.QuantumDevice(n_wires=n_qubits, bsz=inputs.shape[0], device=self.device, record_op=True)
         self.encoder(qdev, inputs)
         self.conv1(qdev)
@@ -147,5 +147,5 @@ class QCNN(tq.QuantumModule):
 
         results = self.measure(qdev)
         # 只取第0, 2, 4个qubit的结果
-        return results[0, 2, 4]
+        return results[:, torch.tensor([0, 2, 4])]
 

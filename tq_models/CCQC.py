@@ -20,8 +20,8 @@ class CCQC_(tq.QuantumModule):
 
         self.rx = tq.RX(has_params=True, trainable=True)
         self.rz = tq.RZ(has_params=True, trainable=True)
-        # todo 原来是CP门
-        self.crot = tq.CRot(has_params=True, trainable=True)
+        # CP门 -> Cnot+Rz
+        self.cnot = tq.CNOT()
 
         self.measure = tq.MeasureAll(tq.PauliZ)
 
@@ -35,10 +35,11 @@ class CCQC_(tq.QuantumModule):
                     self.rx(qdev, wires=i)
                     self.rz(qdev, wires=i)
                     self.rx(qdev, wires=i)
-                self.crot(qdev, wires=[0, n_qubits-1])
-                self.rx(qdev, wires=n_qubits-1)
+                self.cnot(qdev, wires=[0, n_qubits-1])
+                self.rz(qdev, wires=n_qubits-1)
                 for i in range(1, n_qubits):
-                    self.crot(qdev, wires=[n_qubits-i, n_qubits-i-1])
+                    self.cnot(qdev, wires=[n_qubits-i, n_qubits-i-1])
+                    self.rz(qdev, wires=n_qubits-i-1)
                     self.rx(qdev, wires=n_qubits-i-1)
             else:
                 for i in range(n_qubits):
@@ -48,7 +49,8 @@ class CCQC_(tq.QuantumModule):
                 j = 0
                 for i in range(n_qubits):
                     nj = (j+(n_qubits-3)) % n_qubits
-                    self.crot(qdev, wires=[j, nj])
+                    self.cnot(qdev, wires=[j, nj])
+                    self.rz(qdev, wires=nj)
                     self.rx(qdev, wires=nj)
                     j = nj
         result = self.measure(qdev)  # (bs, n_qubits)  n_qubits > num_class
