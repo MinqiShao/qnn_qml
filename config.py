@@ -15,8 +15,12 @@ def get_arguments():
                                                                         'qcl', 'ccqc', 'pure_qcnn',
                                                                         'pure_single', 'pure_multi', 'quanv', 'inception',
                                                                         'quanv_iswap', 'hnn'])
+    parser.add_argument('--encoding', type=str, default='amplitude', choices=['amplitude', 'angle_y', 'angle_xyz',
+                                                                              'hde', 'hae'])
+    parser.add_argument('--reduction', type=str, default='resize', choices=['resize', 'pca', 'encoder'])
     parser.add_argument('--binary_cla', type=bool, default=True)
     parser.add_argument('--class_idx', nargs='+', type=int, default=[0, 1])
+    parser.add_argument('--resize', action='store_true')
     parser.add_argument('--data_scale', type=float, default=1.0)
     return parser.parse_args()
 
