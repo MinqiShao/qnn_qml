@@ -14,7 +14,7 @@ def get_arguments():
     parser.add_argument('--structure', type=str, default='classical', choices=['classical',
                                                                         'qcl', 'ccqc', 'pure_qcnn',
                                                                         'pure_single', 'pure_multi', 'quanv', 'inception',
-                                                                        'quanv_iswap', 'hnn'])
+                                                                        'quanv_iswap', 'hnn', 'hier'])
     parser.add_argument('--encoding', type=str, default='amplitude', choices=['amplitude', 'angle_y', 'angle_xyz',
                                                                               'hde', 'hae'])
     parser.add_argument('--reduction', type=str, default='resize', choices=['resize', 'pca', 'encoder'])

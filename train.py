@@ -4,6 +4,7 @@ import torch.nn as nn
 from config import *
 from datasets.data_loader import load_dataset
 from models import *
+from models.pure.CCQC import CCQC_classifier
 from tq_models import *
 from tools import Log
 import time
@@ -45,6 +46,12 @@ def load_model(v, model_type, class_idx, data_size=28, e_type='amplitude'):
             model = InceptionNet(num_classes=num_classes)
         elif model_type == 'hier':
             model = Hierarchical(embedding_type=e_type)
+        elif model_type == 'qcl':
+            model = QCL_classifier()
+        elif model_type == 'ccqc':
+            model = CCQC_classifier()
+        elif model_type == 'pure_qcnn':
+            model = QCNN_classifier()
     elif v == 'tq':
         if model_type == 'pure_single':
             model = SingleEncoding_(device=device, num_classes=num_classes, img_size=data_size)

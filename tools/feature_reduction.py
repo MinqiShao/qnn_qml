@@ -15,8 +15,8 @@ import torchvision.transforms.functional as TF
 
 def feature_reduc(train_x, test_x, f_type='resize', to_size=256):
     if f_type == 'resize':
-        train_x = TF.resize(torch.unsqueeze(train_x, 1), (14, 14))
-        test_x = TF.resize(torch.unsqueeze(test_x, 1), (14, 14))
+        train_x = TF.resize(torch.unsqueeze(train_x, 1), (16, 16))
+        test_x = TF.resize(torch.unsqueeze(test_x, 1), (16, 16))
         train_x = torch.squeeze(train_x)
         test_x = torch.squeeze(test_x)
 
