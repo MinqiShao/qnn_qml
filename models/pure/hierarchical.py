@@ -1,13 +1,18 @@
 """
 Hierarchical circuit quantum classifier
-2分类
+8 qubits, 2分类
 """
 
 import pennylane as qml
+import torch
+import torch.nn as nn
+import numpy as np
 from tools.embedding import *
 
 
 dev = qml.device('default.qubit', wires=8)
+U = 'U_SU4'
+U_params=15
 
 
 # Unitary ansatz for conv layer
@@ -137,32 +142,50 @@ def Hierarchical_structure(U, params, U_params):
     U(param7, wires=[3, 7])
 
 
-@qml.qnode(dev)
-def Hierarchical_classifier(x, params, U, U_params, e_type='amplitude'):
-    data_embedding_qml(x, n_qubits=8, e_type=e_type)
+@qml.qnode(dev, interface='torch')
+def Hierarchical_circuit(inputs, weights):
+    """
+    :param weights: (U_params*7, )
+    :return:
+    """
     if U == 'U_TTN':
-        Hierarchical_structure(U_TTN, params, U_params)
+        Hierarchical_structure(U_TTN, weights, 2)
     elif U == 'U_5':
-        Hierarchical_structure(U_5, params, U_params)
+        Hierarchical_structure(U_5, weights, 10)
     elif U == 'U_6':
-        Hierarchical_structure(U_6, params, U_params)
+        Hierarchical_structure(U_6, weights, 10)
     elif U == 'U_9':
-        Hierarchical_structure(U_9, params, U_params)
+        Hierarchical_structure(U_9, weights, 2)
     elif U == 'U_13':
-        Hierarchical_structure(U_13, params, U_params)
+        Hierarchical_structure(U_13, weights, 6)
     elif U == 'U_14':
-        Hierarchical_structure(U_14, params, U_params)
+        Hierarchical_structure(U_14, weights, 6)
     elif U == 'U_15':
-        Hierarchical_structure(U_15, params, U_params)
+        Hierarchical_structure(U_15, weights, 4)
     elif U == 'U_SO4':
-        Hierarchical_structure(U_SO4, params, U_params)
+        Hierarchical_structure(U_SO4, weights, 6)
     elif U == 'U_SU4':
-        Hierarchical_structure(U_SU4, params, U_params)
+        Hierarchical_structure(U_SU4, weights, 15)
     else:
         print("Invalid Unitary Ansatz")
         return False
 
-    result = qml.expval(qml.PauliZ(7))
+    # return qml.expval(qml.PauliZ(7))
+    return qml.probs(wires=7)  # (bs, 2)
 
-    return result
 
+class Hierarchical(nn.Module):
+    def __init__(self, embedding_type='amplitude'):
+        super(Hierarchical, self).__init__()
+        self.embedding_type = embedding_type
+
+        total_params = U_params * 7
+        weight_shapes = {'weights': (total_params, )}
+        self.ql = qml.qnn.TorchLayer(Hierarchical_circuit, weight_shapes)
+
+    def forward(self, x):
+        x = torch.flatten(x, start_dim=1)
+        data_embedding_qml(x, n_qubits=8, e_type=self.embedding_type)
+        x = self.ql(x)
+        x = x.float()
+        return x

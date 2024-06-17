@@ -5,4 +5,4 @@ class Log:
     def __call__(self, msg):
         print(msg, end='\n')
         with open(self.log_path,'a') as f:
-            f.write(msg)
+            f.write(msg + '\n')

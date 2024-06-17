@@ -77,9 +77,9 @@ class Inception(nn.Module):
         return torch.cat(outputs, dim=1)
 
 
-class Net(nn.Module):
+class InceptionNet(nn.Module):
     def __init__(self, num_classes, channel=1):
-        super(Net, self).__init__()
+        super(InceptionNet, self).__init__()
         self.incep = Inception(in_channels=channel)
         # classical：8个kernel + quan： 4个qubits
         self.fc1 = nn.Linear(12 * 13 * 13, 64)

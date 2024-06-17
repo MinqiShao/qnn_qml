@@ -36,13 +36,13 @@ def data_embedding_tq(n_qubits, e_type='amplitude'):
 
 def data_embedding_qml(x, n_qubits, e_type='amplitude'):
     if e_type == 'amplitude':
-        AmplitudeEmbedding(x, wires=n_qubits, normalize=True)
+        AmplitudeEmbedding(x, wires=range(n_qubits), normalize=True, pad_with=0)
     elif e_type == 'angle_y':
-        # todo rescale?
-        AngleEmbedding(x, wires=n_qubits, rotation='Y')
+        # todo rescale to ?/pi
+        AngleEmbedding(x, wires=range(n_qubits), rotation='Y')
     elif e_type == 'angle_xyz':
-        AngleEmbedding(x[:n_qubits], wires=n_qubits, rotation='X')
-        AngleEmbedding(x[n_qubits:n_qubits*2], wires=n_qubits, rotation='Y')
+        AngleEmbedding(x[:n_qubits], wires=range(n_qubits), rotation='X')
+        AngleEmbedding(x[n_qubits:n_qubits*2], wires=range(n_qubits), rotation='Y')
 
     elif e_type == 'hde':
         # 2 blocks, each of m qubits

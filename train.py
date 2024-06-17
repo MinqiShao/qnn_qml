@@ -41,6 +41,10 @@ def load_model(v, model_type, class_idx, data_size=28, e_type='amplitude'):
             model = MultiEncoding(num_classes=num_classes, img_size=data_size)
         elif model_type == 'quanv_iswap':
             model = QCNNi()
+        elif model_type == 'inception':
+            model = InceptionNet(num_classes=num_classes)
+        elif model_type == 'hier':
+            model = Hierarchical(embedding_type=e_type)
     elif v == 'tq':
         if model_type == 'pure_single':
             model = SingleEncoding_(device=device, num_classes=num_classes, img_size=data_size)
@@ -51,7 +55,7 @@ def load_model(v, model_type, class_idx, data_size=28, e_type='amplitude'):
         elif model_type == 'qcl':
             model = QCL_(device=device)
         elif model_type == 'pure_qcnn':
-            model = QCNN(device=device)
+            model = QCNN_(device=device, num_classes=num_classes)
         elif model_type == 'quanv_iswap':
             assert num_classes == 2
             model = QCNNi_(device=device)
@@ -77,10 +81,12 @@ def train(model_type=conf.structure, bi=conf.binary_cla, class_idx=conf.class_id
     if not os.path.exists(model_save_path):
         os.makedirs(model_save_path)
     log_path = os.path.join(model_save_path, 'log.txt')
+    if os.path.exists(log_path):
+        os.remove(log_path)
     log = Log(log_path)
     model_save_path = os.path.join(model_save_path, conf.reduction + '_' + str(class_idx) + '.pth')
     for epoch in range(epochs):
-        log(f'===== Epoch {epoch + 1} =====\t')
+        log(f'===== Epoch {epoch + 1} =====')
         s_time = time.perf_counter()
         model.train()
 
@@ -101,7 +107,7 @@ def train(model_type=conf.structure, bi=conf.binary_cla, class_idx=conf.class_id
 
         e_time = time.perf_counter()
         train_acc = accuracy_score(y_trues, y_preds)
-        log('Train: Loss: {:.6f}, Acc: {:.6f}, lr: {:.6f}, Time: {:.2f}s\t'.format(loss.item(), train_acc,
+        log('Train: Loss: {:.6f}, Acc: {:.6f}, lr: {:.6f}, Time: {:.2f}s'.format(loss.item(), train_acc,
                                                                             optimizer.param_groups[0]['lr'],
                                                                             e_time - s_time))
 
@@ -118,11 +124,11 @@ def train(model_type=conf.structure, bi=conf.binary_cla, class_idx=conf.class_id
             y_trues += labels.cpu().numpy().tolist()
             y_preds += outputs.data.cpu().numpy().argmax(axis=1).tolist()
         test_acc = accuracy_score(y_trues, y_preds)
-        log('Test: Loss: {:.6f}, Acc: {:.6f}\t'.format(loss.item(), test_acc))
+        log('Test: Loss: {:.6f}, Acc: {:.6f}'.format(loss.item(), test_acc))
 
         if test_acc > best_acc:
             best_acc = test_acc
-            log('save best!!\t')
+            log('save best!!')
             torch.save(model.state_dict(), model_save_path)
 
 

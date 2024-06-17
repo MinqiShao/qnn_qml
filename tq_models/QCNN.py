@@ -1,6 +1,6 @@
 """
 tq_models implementation for models/pure/QCNN
---> 目前只支持2/3分类
+--> 目前只支持2/3分类，需要resize
 """
 
 import torchquantum as tq
@@ -122,10 +122,11 @@ class FC(tq.QuantumModule):
         self.rx(qdev, wires=4)
 
 
-class QCNN(tq.QuantumModule):
-    def __init__(self, device):
+class QCNN_(tq.QuantumModule):
+    def __init__(self, device, num_classes=2):
         super().__init__()
         self.device = device
+        self.num_class = num_classes
         self.encoder = tq.AmplitudeEncoder()
         self.conv1 = Conv1()
         self.pool1 = Pool1()
@@ -147,5 +148,8 @@ class QCNN(tq.QuantumModule):
 
         results = self.measure(qdev)
         # 只取第0, 2, 4个qubit的结果
-        return results[:, torch.tensor([0, 2, 4])]
+        if self.num_class == 2:
+            return results[:, torch.tensor([0, 2])]
+        else:
+            return results[:, torch.tensor([0, 2, 4])]
 
