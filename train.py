@@ -1,15 +1,13 @@
 import os
 
 import torch
-import torch.nn as nn
 from config import *
-from datasets.data_loader import load_dataset
-from models.model_loader import load_model
+from tools.data_loader import load_dataset
+from tools.model_loader import load_model
 from tools import Log
 import time
 from sklearn.metrics import accuracy_score
 from tqdm import tqdm
-import pennylane as qml
 
 conf = get_arguments()
 epochs = 20

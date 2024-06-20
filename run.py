@@ -1,12 +1,10 @@
-import torch
 from tqdm import tqdm
-from sklearn.metrics import accuracy_score
-from models.model_loader import load_model_from_path
-from datasets.data_loader import load_test_data
+from tools.model_loader import load_model_from_path
+from tools.data_loader import load_test_data
 from config import *
-from testing.entanglement import *
+from tools.entanglement import *
 from models.circuits import weight_dict
-from models.pure import QCL, single_encoding, multi_encoding, QCNN_pure
+from models.pure import QCL
 
 conf = get_arguments()
 device = torch.device('cpu')
