@@ -7,6 +7,7 @@ import pennylane as qml
 import torch.nn as nn
 import torch
 from math import ceil
+from models.circuits import pure_multi_circuit
 
 torch.manual_seed(0)
 
@@ -17,34 +18,29 @@ kernel_size = n_qubits
 dev = qml.device("default.qubit", wires=n_qubits)
 
 
+@qml.qnode(dev, interface='torch')
 def circuit(inputs, weights):
-    ###### 与single不同
-    var_per_qubit = int(len(inputs) / n_qubits) + 1  # num of param for each qubit
-    gates = ['RZ', 'RY'] * ceil(var_per_qubit / 2)
-    for q in range(n_qubits):
-        qml.Hadamard(wires=q)
-        for i in range(var_per_qubit):
-            if (q * var_per_qubit + i) < len(inputs):
-                exec('qml.{}({}, wires = {})'.format(gates[i], inputs[q * var_per_qubit + i], q))
-            else:
-                pass
-    ######
-
-    for d in range(depth):
-        for i in range(n_qubits):
-            qml.CRZ(weights[d, i], wires=[i, (i+1)%n_qubits])
-        for j in range(n_qubits, n_qubits*2):
-            qml.RY(weights[d, j], wires=j%n_qubits)
-
+    pure_multi_circuit(n_qubits, depth, inputs, weights)
     return [qml.expval(qml.PauliZ(i)) for i in range(n_qubits)]
+
+
+@qml.qnode(dev, interface='torch')
+def circuit_state(inputs, weights):
+    pure_multi_circuit(n_qubits, depth, inputs, weights)
+    return qml.state()
+
+
+@qml.qnode(dev, interface='torch')
+def circuit_dm(inputs, weights, q_idx=0):
+    pure_multi_circuit(n_qubits, depth, inputs, weights)
+    return qml.density_matrix(wires=q_idx)
 
 
 class Quan2d(nn.Module):
     def __init__(self, kernel_size):
         super(Quan2d, self).__init__()
         weight_shapes = {'weights': (depth, 2 * n_qubits)}
-        qnode = qml.QNode(circuit, dev, interface='torch', diff_method='best')
-        self.ql1 = qml.qnn.TorchLayer(qnode, weight_shapes)
+        self.ql1 = qml.qnn.TorchLayer(circuit, weight_shapes)
         self.kernel_size = kernel_size
 
     def forward(self, x):
@@ -62,12 +58,18 @@ class MultiEncoding(nn.Module):
     def __init__(self, num_classes, img_size=28):
         super(MultiEncoding, self).__init__()
         self.qc = Quan2d(kernel_size=kernel_size)
-        img_size = int((img_size - kernel_size) / 2) + 1
+        img_size = int(img_size / 2)
         self.fc1 = nn.Linear(in_features=n_qubits * img_size * img_size, out_features=num_classes*2)
         self.lr1 = nn.LeakyReLU(0.1)
         self.fc2 = nn.Linear(in_features=num_classes*2, out_features=num_classes)
 
-    def forward(self, x):
+    def forward(self, x, y):
+        preds = self.predict(x)
+        criterion = nn.CrossEntropyLoss()
+        loss = criterion(preds, y)
+        return loss
+
+    def predict(self, x):
         x = self.qc(x)
         x = self.fc1(x)
         x = self.lr1(x)

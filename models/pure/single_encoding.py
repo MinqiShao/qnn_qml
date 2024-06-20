@@ -8,6 +8,7 @@ import pennylane as qml
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
+from models.circuits import pure_single_circuit
 
 torch.manual_seed(0)
 
@@ -23,24 +24,41 @@ def circuit(inputs, weights):
     :param weights: (i, j): weight for j-th qubit in i-th depth
     :return:
     """
+    pure_single_circuit(n_qubits, depth, inputs, weights)
+
+    return [qml.expval(qml.PauliZ(i)) for i in range(n_qubits)]
+
+
+@qml.qnode(dev, interface='torch')
+def circuit_state(inputs, weights):
     for qub in range(n_qubits):
         qml.Hadamard(wires=qub)
         qml.RY(inputs[qub], wires=qub)
+    pure_single_circuit(n_qubits, depth, weights)
+    return qml.state()
 
-    for layer in range(depth):
-        for i in range(n_qubits):
-            qml.CRZ(weights[layer, i], wires=[i, (i + 1) % n_qubits])
-        for j in range(n_qubits, 2 * n_qubits):
-            qml.RY(weights[layer, j], wires=j % n_qubits)
 
-    return [qml.expval(qml.PauliZ(i)) for i in range(n_qubits)]
+@qml.qnode(dev, interface='torch')
+def circuit_dm_out(inputs, weights, q_idx):
+    for qub in range(n_qubits):
+        qml.Hadamard(wires=qub)
+        qml.RY(inputs[qub], wires=qub)
+    pure_single_circuit(n_qubits, depth, weights)
+    return qml.density_matrix(wires=q_idx)
+
+
+@qml.qnode(dev, interface='torch')
+def circuit_dm_in(inputs, weights, q_idx):
+    for qub in range(n_qubits):
+        qml.Hadamard(wires=qub)
+        qml.RY(inputs[qub], wires=qub)
+    return qml.density_matrix(wires=q_idx)
 
 
 class Quan2d(nn.Module):
     def __init__(self, kernel_size):
         super(Quan2d, self).__init__()
         weight_shapes = {"weights": (depth, 2 * n_qubits)}
-        # qnode = qml.QNode(circuit, dev, interface='torch', diff_method="best")
         self.ql1 = qml.qnn.TorchLayer(circuit, weight_shapes)
         self.kernel_size = kernel_size
 
@@ -63,13 +81,17 @@ class SingleEncoding(nn.Module):
         self.fc1 = nn.Linear(in_features=n_qubits*img_size*img_size, out_features=20)
         self.fc2 = nn.Linear(in_features=20, out_features=num_classes)
 
-    def forward(self, x):
-        bs = x.shape[0]
-        #x = x.view(bs, 1, 28, 28)
+    def forward(self, x, y):
+        preds = self.predict(x)
+        criterion = nn.CrossEntropyLoss()
+        loss = criterion(preds, y)
+        return loss
+
+    def predict(self, x):
+        x = x.unsqueeze(1)
         x = self.qc(x)
         x = self.fc1(x)
         x = F.relu(x)
         x = self.fc2(x)
         return x
-
 

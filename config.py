@@ -5,7 +5,7 @@ import argparse
 def get_arguments():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--version', type=str, default='tq', choices=['tq', 'qml'])
+    parser.add_argument('--version', type=str, default='qml', choices=['tq', 'qml'])
 
     parser.add_argument('--data_dir', type=str, default='../../shaominqi/ns219x/data')
     parser.add_argument('--result_dir', type=str, default='../../shaominqi/ns219x/tmp_results')
@@ -14,7 +14,7 @@ def get_arguments():
     parser.add_argument('--structure', type=str, default='classical', choices=['classical',
                                                                         'qcl', 'ccqc', 'pure_qcnn',
                                                                         'pure_single', 'pure_multi', 'quanv', 'inception',
-                                                                        'quanv_iswap', 'hnn', 'hier'])
+                                                                        'hier', 'hier_qcnn'])
     parser.add_argument('--encoding', type=str, default='amplitude', choices=['amplitude', 'angle_y', 'angle_xyz',
                                                                               'hde', 'hae'])
     parser.add_argument('--reduction', type=str, default='resize', choices=['resize', 'pca', 'encoder'])

@@ -1,6 +1,7 @@
 """
 Hierarchical circuit quantum classifier
 8 qubits, 2分类
+resize
 """
 
 import pennylane as qml
@@ -8,8 +9,9 @@ import torch
 import torch.nn as nn
 import numpy as np
 from tools.embedding import *
+import autograd.numpy as anp
 
-
+n_qubits = 8
 dev = qml.device('default.qubit', wires=8)
 U = 'U_SU4'
 U_params=15
@@ -148,6 +150,7 @@ def Hierarchical_circuit(inputs, weights):
     :param weights: (U_params*7, )
     :return:
     """
+    AmplitudeEmbedding(inputs, wires=range(n_qubits), normalize=True, pad_with=0)
     if U == 'U_TTN':
         Hierarchical_structure(U_TTN, weights, 2)
     elif U == 'U_5':
@@ -183,9 +186,109 @@ class Hierarchical(nn.Module):
         weight_shapes = {'weights': (total_params, )}
         self.ql = qml.qnn.TorchLayer(Hierarchical_circuit, weight_shapes)
 
-    def forward(self, x):
+    def forward(self, x, y):
+        preds = self.predict(x)
+        loss = torch.FloatTensor([0])
+        for l, p in zip(y, preds):
+            c_e = l * (torch.log(p[l])) + (1 - l) * torch.log(1 - p[1 - l])
+            loss = loss + c_e
+        return -1 * loss
+
+    def predict(self, x):
         x = torch.flatten(x, start_dim=1)
-        data_embedding_qml(x, n_qubits=8, e_type=self.embedding_type)
+        x = self.ql(x)
+        x = x.float()
+        return x
+
+
+# quantum circuits for conv layers and pool layers
+def conv1(U, params):
+    U(params, wires=[0, 7])
+    for i in range(0, n_qubits, 2):
+        U(params, wires=[i, i+1])
+    for i in range(1, n_qubits-1, 2):
+        U(params, wires=[i, i+1])
+
+def conv2(U, params):
+    U(params, wires=[0, 6])
+    U(params, wires=[0, 2])
+    U(params, wires=[4, 6])
+    U(params, wires=[2, 4])
+
+def conv3(U, params):
+    U(params, wires=[0, 4])
+
+def pool1(V, params):
+    for i in range(0, n_qubits, 2):
+        V(params, wires=[i, i+1])
+
+def pool2(V, params):
+    V(params, wires=[2, 0])
+    V(params, wires=[6, 4])
+
+def pool3(V, params):
+    V(params, wires=[0, 4])
+
+def QCNN_structure(U, params, U_params):
+    param1 = params[0:U_params]
+    param2 = params[U_params: 2 * U_params]
+    param3 = params[2 * U_params: 3 * U_params]
+    param4 = params[3 * U_params: 3 * U_params + 2]
+    param5 = params[3 * U_params + 2: 3 * U_params + 4]
+    param6 = params[3 * U_params + 4: 3 * U_params + 6]
+
+    conv1(U, param1)
+    pool1(Pooling_ansatz1, param4)
+    conv2(U, param2)
+    pool2(Pooling_ansatz1, param5)
+    conv3(U, param3)
+    pool3(Pooling_ansatz1, param6)
+
+
+@qml.qnode(dev, interface='torch')
+def QCNN_circuit(inputs, weights):
+    AmplitudeEmbedding(inputs, wires=range(n_qubits), normalize=True, pad_with=0)
+    if U == 'U_TTN':
+        QCNN_structure(U_TTN, weights, 2)
+    elif U == 'U_5':
+        QCNN_structure(U_5, weights, 10)
+    elif U == 'U_6':
+        QCNN_structure(U_6, weights, 10)
+    elif U == 'U_9':
+        QCNN_structure(U_9, weights, 2)
+    elif U == 'U_13':
+        QCNN_structure(U_13, weights, 6)
+    elif U == 'U_14':
+        QCNN_structure(U_14, weights, 6)
+    elif U == 'U_15':
+        QCNN_structure(U_15, weights, 4)
+    elif U == 'U_SO4':
+        QCNN_structure(U_SO4, weights, 6)
+    elif U == 'U_SU4':
+        QCNN_structure(U_SU4, weights, 15)
+    else:
+        print("Invalid Unitary Ansatze")
+        return False
+
+    return qml.probs(wires=4)
+
+
+class QCNN_classifier(nn.Module):
+    def __init__(self, e='amplitude'):
+        super().__init__()
+        self.e_type = e
+        total_params = U_params * 3 + 6
+        weight_shapes = {'weights': (total_params,)}
+        self.ql = qml.qnn.TorchLayer(QCNN_circuit, weight_shapes)
+
+    def forward(self, x, y):
+        x = torch.flatten(x, start_dim=1)
+        x = self.ql(x)
+        x = x.float()
+        return x
+
+    def predict(self, x):
+        x = torch.flatten(x, start_dim=1)
         x = self.ql(x)
         x = x.float()
         return x

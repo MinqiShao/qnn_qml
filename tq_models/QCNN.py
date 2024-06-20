@@ -4,7 +4,6 @@ tq_models implementation for models/pure/QCNN
 """
 
 import torchquantum as tq
-from torchquantum.measurement import expval
 import torch
 
 
