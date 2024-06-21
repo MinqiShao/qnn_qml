@@ -24,9 +24,9 @@ def load_model(v, model_type, class_idx, device, data_size=28, e_type='amplitude
             assert num_classes == 2
             model = QCNN_classifier(e=e_type)
         elif model_type == 'qcl':
-            model = QCL_classifier()
+            model = QCL_classifier(num_classes=num_classes)
         elif model_type == 'ccqc':
-            model = CCQC_classifier(e=e_type)
+            model = CCQC_classifier(e=e_type, num_classes=num_classes)
         elif model_type == 'pure_qcnn':
             model = QCNN_c()
     elif v == 'tq':

@@ -14,7 +14,6 @@ from tools.embedding import data_embedding_qml
 
 n_qubits = 10
 dev = qml.device('default.qubit', wires=n_qubits)
-e_type = 'amplitude'
 
 
 @qml.qnode(dev, interface='torch')
@@ -34,17 +33,31 @@ def circuit_state(inputs, weights_conv1, weights_conv2, weights_pool1, weights_p
 
 
 @qml.qnode(dev, interface='torch')
-def circuit_dm(q_idx, inputs, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc):
+def circuit_dm(q_idx, inputs, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc, exec_=True):
     AmplitudeEmbedding(inputs, wires=range(n_qubits), normalize=True, pad_with=0)
-    pure_qcnn_circuit(n_qubits, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc)
+    if exec_:
+        pure_qcnn_circuit(n_qubits, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc)
     return qml.density_matrix(wires=q_idx)
+
+
+def get_density_matrix(inputs, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc, exec_=True):
+    dm_list = []
+    for q in range(n_qubits):
+        dm_list.append(circuit_dm(q, inputs, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc, exec_))
+    return dm_list
+
+
+def whole_dm(inputs, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc):
+    l = []
+    for q in range(n_qubits):
+        l.append(q)
+    return (circuit_dm(l, inputs, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc, exec_=False),
+            circuit_dm(l, inputs, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc))
 
 
 class QCNN_classifier(nn.Module):
     def __init__(self, num_classes=2, e='amplitude'):
         super(QCNN_classifier, self).__init__()
-        global e_type
-        e_type = e
         self.num_classes = num_classes
 
         self.cir = qml.qnn.TorchLayer(circuit, {'weights_conv1': (n_qubits, 15),

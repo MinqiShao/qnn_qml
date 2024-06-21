@@ -9,7 +9,7 @@ import scipy.linalg as la
 from qiskit.quantum_info import DensityMatrix, negativity, entropy
 
 
-#### Entanglement
+#### Entanglement for single sample
 def Meyer_Wallach(partial_traces):
     """
     [0, 1]
@@ -26,7 +26,7 @@ def Meyer_Wallach(partial_traces):
         measure += 1/2 * (1-rho_squared_trace)
 
     en = measure * (4/n_qubits)
-    return en
+    return en.real
 
 ### Implement from QuanTest
 def gener_distance(u, v):
