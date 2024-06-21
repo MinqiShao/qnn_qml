@@ -20,11 +20,8 @@ if conf.version == 'tq':
 else:
     device = torch.device('cpu')
 
-if len(conf.class_idx) > 2:
-    conf.binary_cla = False
 
-
-def train(model_type=conf.structure, bi=conf.binary_cla, class_idx=conf.class_idx, e_type=conf.encoding):
+def train(model_type=conf.structure, class_idx=conf.class_idx, e_type=conf.encoding):
     print(f'training on {device}')
 
     model = load_model(v=conf.version, model_type=model_type, class_idx=class_idx, device=device,
@@ -36,7 +33,7 @@ def train(model_type=conf.structure, bi=conf.binary_cla, class_idx=conf.class_id
 
     train_data, test_data, _, _, _, _ = load_dataset(name=conf.dataset, dir=conf.data_dir, reduction=conf.reduction,
                                                      resize=conf.resize,
-                                                     bi=bi, class_idx=class_idx, scale=conf.data_scale)
+                                                     class_idx=class_idx, scale=conf.data_scale)
 
     model = model.to(device)
     best_acc = 0

@@ -7,7 +7,7 @@ from tools.feature_reduction import feature_reduc, feature_redc_test
 import torchvision.transforms.functional as F
 
 
-def load_dataset(name, dir, reduction, resize=False, bi=True, class_idx=[0, 1], scale=1.0):
+def load_dataset(name, dir, reduction, resize=False, class_idx=[0, 1], scale=1.0):
     if name == 'mnist':
         train_set = datasets.MNIST(dir, train=True, download=True, transform=transforms.ToTensor())
         test_set = datasets.MNIST(dir, train=False, download=True, transform=transforms.ToTensor())
@@ -18,8 +18,8 @@ def load_dataset(name, dir, reduction, resize=False, bi=True, class_idx=[0, 1], 
         train_set = datasets.EMNIST(dir, train=True, download=True, transform=None if resize else transforms.ToTensor(), split='digits')
         test_set = datasets.EMNIST(dir, train=False, download=True, transform=None if resize else transforms.ToTensor(), split='digits')
 
-    scaled_train_idx = filter_data(train_set, bi, class_idx, scale)
-    scaled_test_idx = filter_data(test_set, bi, class_idx, scale)
+    scaled_train_idx = filter_data(train_set, class_idx, scale)
+    scaled_test_idx = filter_data(test_set, class_idx, scale)
     print(f'load {name} data for {len(class_idx)} classification, classes: {class_idx}, scale: {scale * 100}%, '
           f'num of training data: {len(scaled_train_idx)}, num of testing data: {len(scaled_test_idx)}')
 
@@ -47,23 +47,21 @@ def transform_labels(y, class_idx=[0, 1]):
     return y
 
 
-def filter_data(data_set, bi=True, class_idx=[0, 1], scale=1.0):
+def filter_data(data_set, class_idx=[0, 1], scale=1.0):
     y = data_set.targets.clone()
 
-    if bi:
-        idx = torch.where(torch.logical_or(y == class_idx[0], y == class_idx[1]))[0]
-    else:
-        num_class = len(class_idx)
-        idx = torch.tensor([], dtype=torch.long)
-        for i in range(num_class):
-            idx = torch.cat((idx, torch.where(y == class_idx[i])[0]))
+    num_class = len(class_idx)
+    idx = torch.tensor([], dtype=torch.long)
+    for i in range(num_class):
+        c_idx = torch.where(y == class_idx[i])[0]
+        c_idx = c_idx[:int(len(c_idx) * scale)]
+        print(f'{len(c_idx)} data from class {class_idx[i]}')
+        idx = torch.cat((idx, c_idx))
 
-    scaled_idx = idx[:int(len(idx) * scale)]
-
-    return scaled_idx
+    return idx
 
 
-def load_test_data(conf, bi=True):
+def load_test_data(conf):
     name = conf.dataset
     dir = conf.data_dir
     resize = conf.resize
@@ -76,7 +74,7 @@ def load_test_data(conf, bi=True):
     elif name == 'emnist':
         test_set = datasets.EMNIST(dir, train=False, download=True, split='digits')
 
-    scaled_test_idx = filter_data(test_set, bi, class_idx, scale)
+    scaled_test_idx = filter_data(test_set, class_idx, scale)
     print(f'load {name} data for {len(class_idx)} classification, classes: {class_idx}, scale: {scale * 100}%, '
           f'num of testing data: {len(scaled_test_idx)}')
     if resize:
