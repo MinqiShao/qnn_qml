@@ -8,8 +8,9 @@ def get_arguments():
     parser.add_argument('--version', type=str, default='qml', choices=['tq', 'qml'])
 
     parser.add_argument('--data_dir', type=str, default='../../shaominqi/ns219x/data')
-    parser.add_argument('--result_dir', type=str, default='../../shaominqi/ns219x/tmp_results')
+    parser.add_argument('--model_dir', type=str, default='../../shaominqi/ns219x/models')
     parser.add_argument('--analysis_dir', type=str, default='../../shaominqi/ns219x/analysis')
+    parser.add_argument('--visual_dir', type=str, default='../../shaominqi/ns219x/visual_results')
 
     parser.add_argument('--dataset', type=str, default='mnist', choices=['mnist', 'fashion_mnist', 'emnist'])
     parser.add_argument('--structure', type=str, default='classical', choices=['classical',

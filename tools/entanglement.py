@@ -6,13 +6,13 @@ import math
 import numpy as np
 import torch
 import scipy.linalg as la
-from qiskit.quantum_info import DensityMatrix, negativity, entropy
+from qiskit.quantum_info import DensityMatrix, negativity, entropy, Statevector
 
 
 #### Entanglement for single sample
 def Meyer_Wallach(partial_traces):
     """
-    [0, 1]
+    [0, 1] 越大纠缠越大
     Meyer_Wallach entanglement under single sample
     :param partial_traces: list, for each qubit (its density matrix)
     :return:
@@ -49,10 +49,16 @@ def ent_state(psi):
         res += gener_distance(liner_map(0, j, psi), liner_map(1, j, psi))
     return res * 4 / num_qubits
 
+def entQ(in_state, out_state, k):
+    ent_in = ent_state(in_state)
+    ent_out = ent_state(out_state)
+    return ent_out - k*ent_in, ent_in, ent_out
+
+########
 
 def entanglement_entropy(density_matrix):
     """
-    [0, log(n_qubits)]
+    [0, log(n_qubits)] 越小信息量越少，纠缠程度越低
     :param density_matrix: dm of all qubits
     :return:
     """
@@ -67,17 +73,17 @@ def entanglement_entropy(density_matrix):
     return h_val
 
 
-def avg_negativity(density_matrix):
+def avg_negativity(state_vector):
     """
-    [0, 1]
-    :param density_matrix: dm of all qubits
+    [0, 1] 越大纠缠越大
+    :param state_vector
     :return: 
     """
     nev = 0.0
-    n_qubits = int(math.log2(density_matrix.shape[0]))
-    dm = DensityMatrix(density_matrix.numpy())
+    n_qubits = int(math.log2(state_vector.shape[0]))
+    state_vector = Statevector(state_vector.numpy())
     for q in range(n_qubits):
         qargs = [q]
-        negv = negativity(dm, qargs)
+        negv = negativity(state_vector, qargs)
         nev += negv
     return nev / n_qubits

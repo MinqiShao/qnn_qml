@@ -24,7 +24,10 @@ def circuit(inputs, weights):
     :param weights: (i, j): weight for j-th qubit in i-th depth
     :return:
     """
-    pure_single_circuit(n_qubits, depth, inputs, weights)
+    for qub in range(n_qubits):
+        qml.Hadamard(wires=qub)
+        qml.RY(inputs[qub], wires=qub)
+    pure_single_circuit(n_qubits, depth, weights)
 
     return [qml.expval(qml.PauliZ(i)) for i in range(n_qubits)]
 
@@ -88,10 +91,17 @@ class SingleEncoding(nn.Module):
         return loss
 
     def predict(self, x):
-        x = x.unsqueeze(1)
+        if len(x.shape) < 4:
+            x = x.unsqueeze(1)
         x = self.qc(x)
         x = self.fc1(x)
         x = F.relu(x)
         x = self.fc2(x)
         return x
+
+    def visualize_circuit(self, x, weights, save_path):
+        import matplotlib.pyplot as plt
+        fig, ax = qml.draw_mpl(circuit)(x[0, :4], weights)
+        fig.show()
+        plt.savefig(save_path)
 

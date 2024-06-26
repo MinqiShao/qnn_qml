@@ -1,15 +1,37 @@
 import os
+import pennylane as qml
+import torch
 from tqdm import tqdm
 from tools.model_loader import load_model_from_path
 from tools.data_loader import load_test_data
 from config import *
 from tools.entanglement import *
-from models.circuits import weight_dict
-from models.pure import QCL, QCNN_pure, CCQC, single_encoding, multi_encoding
+from models.circuits import weight_dict, in_out_state, whole_density_matrix, partial_density_matrix
 from tools import Log
 
 conf = get_arguments()
 device = torch.device('cpu')
+
+
+def visualize_circuit():
+    model = load_model_from_path(conf=conf, device=device)
+    test_x, test_y = load_test_data(conf)
+    test_x, test_y = test_x[:1], test_y[:1]
+    test_x = torch.flatten(test_x, start_dim=1)
+    state_dict = model.state_dict()
+    weight_name = weight_dict[conf.structure]
+    if type(weight_name) is list:
+        params = []
+        for i in range(len(weight_name)):
+            params.append(state_dict[weight_name[i]])
+    else:
+        params = state_dict[weight_name]
+
+    fig_save_path = os.path.join(conf.visual_dir, 'circuits')
+    if not os.path.exists(fig_save_path):
+        os.makedirs(fig_save_path)
+    fig_save_path = os.path.join(fig_save_path, conf.structure + '.png')
+    model.visualize_circuit(test_x, params, fig_save_path)
 
 
 def analyse_qinfo(c_n='MW'):
@@ -51,15 +73,7 @@ def MW(test_x, params):
     out_list = []
     for x in tqdm(test_x):
         x = torch.flatten(x, start_dim=0)
-        if conf.structure == 'qcl':
-            in_dm_list = QCL.get_density_matrix(x, params, exec_=False)
-            out_dm_list = QCL.get_density_matrix(x, params)
-        elif conf.structure == 'pure_qcnn':
-            in_dm_list = QCNN_pure.get_density_matrix(x, params[0], params[1], params[2], params[3], params[4], exec_=False)
-            out_dm_list = QCNN_pure.get_density_matrix(x, params[0], params[1], params[2], params[3], params[4])
-        elif conf.structure == 'ccqc':
-            in_dm_list = CCQC.get_density_matrix(x, params[0], params[1], params[2], exec_=False)
-            out_dm_list = CCQC.get_density_matrix(x, params[0], params[1], params[2])
+        in_dm_list, out_dm_list = partial_density_matrix(x, conf.structure, params)
         in_list.append(Meyer_Wallach(in_dm_list))
         out_list.append(Meyer_Wallach(out_dm_list))
     in_list = torch.tensor(in_list)
@@ -72,12 +86,7 @@ def entropy(test_x, params):
     out_list = []
     for x in tqdm(test_x):
         x = torch.flatten(x, start_dim=0)
-        if conf.structure == 'qcl':
-            in_dm, out_dm = QCL.whole_dm(x, params)
-        elif conf.structure == 'pure_qcnn':
-            in_dm, out_dm = QCNN_pure.whole_dm(x, params[0], params[1], params[2], params[3], params[4])
-        elif conf.structure == 'ccqc':
-            in_dm, out_dm = CCQC.whole_dm(x, params[0], params[1], params[2])
+        in_dm, out_dm = whole_density_matrix(x, conf.structure, params)
         in_en, out_en = entanglement_entropy(in_dm), entanglement_entropy(out_dm)
         in_list.append(in_en)
         out_list.append(out_en)
@@ -91,13 +100,8 @@ def negativity(test_x, params):
     out_list = []
     for x in tqdm(test_x):
         x = torch.flatten(x, start_dim=0)
-        if conf.structure == 'qcl':
-            in_dm, out_dm = QCL.whole_dm(x, params)
-        elif conf.structure == 'pure_qcnn':
-            in_dm, out_dm = QCNN_pure.whole_dm(x, params[0], params[1], params[2], params[3], params[4])
-        elif conf.structure == 'ccqc':
-            in_dm, out_dm = CCQC.whole_dm(x, params[0], params[1], params[2])
-        in_en, out_en = avg_negativity(in_dm), avg_negativity(out_dm)
+        in_state, out_state = in_out_state(x, conf.structure, params)
+        in_en, out_en = avg_negativity(in_state), avg_negativity(out_state)
         in_list.append(in_en)
         out_list.append(out_en)
     in_list = torch.tensor(in_list)
@@ -105,4 +109,5 @@ def negativity(test_x, params):
     return in_list, out_list, out_list - in_list
 
 
-analyse_qinfo(c_n='entropy')
+analyse_qinfo(c_n='negativity')
+# visualize_circuit()

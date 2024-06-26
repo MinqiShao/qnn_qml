@@ -1,9 +1,12 @@
 """
 circuit structures
 dict key names for saving weights
+state, density matrix
 """
 import pennylane as qml
+import torch
 from math import ceil
+from pure import *
 
 
 ##### circuit structures
@@ -113,7 +116,6 @@ def ccqc_circuit(n_qubits, depth, weights, weights_1, weights_2):
 
 
 def pure_single_circuit(n_qubits, depth, weights):
-
     for layer in range(depth):
         for i in range(n_qubits):
             qml.CRZ(weights[layer, i], wires=[i, (i + 1) % n_qubits])
@@ -147,3 +149,52 @@ weight_dict = {'qcl': 'ql.weights',
                'ccqc': ['ql.weights', 'ql.weights_1', 'ql.weights_2'],
                'pure_single': 'qc.ql1.weights',
                'pure_multi': 'qc.ql1.weights'}
+
+
+##### obtain state, density matrix
+def in_out_state(x, structure, params):
+    if structure == 'qcl':
+        in_state = QCL.circuit_state(x, params, exec_=False)
+        out_state = QCL.circuit_state(x, params)
+    elif structure == 'pure_qcnn':
+        in_state = QCNN_pure.circuit_state(x, params[0], params[1], params[2], params[3], params[4], exec_=False)
+        out_state = QCNN_pure.circuit_state(x, params[0], params[1], params[2], params[3], params[4])
+    elif structure == 'ccqc':
+        in_state = CCQC.circuit_state(x, params[0], params[1], params[2], exec_=False)
+        out_state = CCQC.circuit_state(x, params[0], params[1], params[2])
+    return in_state, out_state
+
+
+def whole_density_matrix(x, structure, params):
+    if structure == 'qcl':
+        in_dm, out_dm = QCL.whole_dm(x, params)
+    elif structure == 'pure_qcnn':
+        in_dm, out_dm = QCNN_pure.whole_dm(x, params[0], params[1], params[2], params[3], params[4])
+    elif structure == 'ccqc':
+        in_dm, out_dm = CCQC.whole_dm(x, params[0], params[1], params[2])
+    return in_dm, out_dm
+
+
+def partial_density_matrix(x, structure, params):
+    if structure == 'qcl':
+        in_dm_list = QCL.get_density_matrix(x, params, exec_=False)
+        out_dm_list = QCL.get_density_matrix(x, params)
+    elif structure == 'pure_qcnn':
+        in_dm_list = QCNN_pure.get_density_matrix(x, params[0], params[1], params[2], params[3], params[4], exec_=False)
+        out_dm_list = QCNN_pure.get_density_matrix(x, params[0], params[1], params[2], params[3], params[4])
+    elif structure == 'ccqc':
+        in_dm_list = CCQC.get_density_matrix(x, params[0], params[1], params[2], exec_=False)
+        out_dm_list = CCQC.get_density_matrix(x, params[0], params[1], params[2])
+    return in_dm_list, out_dm_list
+
+
+def circuit_pred(x, structure, params, conf):
+    # x: img or state after encoding
+    if structure == 'qcl':
+        o = QCL.circuit(x, params)
+    elif structure == 'pure_qcnn':
+        o = QCNN_pure.circuit(x, params[0], params[1], params[2], params[3], params[4])
+    elif structure == 'ccqc':
+        o = CCQC.circuit(x, params[0], params[1], params[2])
+    o = torch.argmax(o[:len(conf.class_idx)])
+    return o

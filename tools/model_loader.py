@@ -45,10 +45,10 @@ def load_model(v, model_type, class_idx, device, data_size=28, e_type='amplitude
 
 def load_model_from_path(conf, device):
     if conf.resize:
-        mode_path = os.path.join(conf.result_dir, conf.dataset, conf.version, conf.structure,
+        mode_path = os.path.join(conf.model_dir, conf.dataset, conf.version, conf.structure,
                                  conf.reduction + '_' + str(conf.class_idx) + '.pth')
     else:
-        mode_path = os.path.join(conf.result_dir, conf.dataset, conf.version, conf.structure,
+        mode_path = os.path.join(conf.model_dir, conf.dataset, conf.version, conf.structure,
                                  str(conf.class_idx) + '.pth')
     print(f'load model from: {mode_path}...')
     model = load_model(v=conf.version, model_type=conf.structure, class_idx=conf.class_idx,

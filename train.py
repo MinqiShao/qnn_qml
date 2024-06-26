@@ -37,7 +37,7 @@ def train(model_type=conf.structure, class_idx=conf.class_idx, e_type=conf.encod
 
     model = model.to(device)
     best_acc = 0
-    model_save_path = os.path.join(conf.result_dir, conf.dataset, conf.version, model_type)
+    model_save_path = os.path.join(conf.model_dir, conf.dataset, conf.version, model_type)
     if not os.path.exists(model_save_path):
         os.makedirs(model_save_path)
     if conf.resize:

@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 from pennylane import AmplitudeEmbedding
 from models.circuits import QCL_circuit
+import matplotlib.pyplot as plt
 
 from tools.embedding import data_embedding_qml
 
@@ -22,11 +23,11 @@ def circuit(inputs, weights):
     return [qml.expval(qml.PauliZ(i)) for i in range(n_qubits)]
 
 
-# 单个样本
 @qml.qnode(dev, interface='torch')
-def circuit_state(inputs, weights):
+def circuit_state(inputs, weights, exec_=True):
     AmplitudeEmbedding(inputs, wires=range(n_qubits), normalize=True, pad_with=0)
-    QCL_circuit(depth, n_qubits, weights)
+    if exec_:
+        QCL_circuit(depth, n_qubits, weights)
 
     return qml.state()
 
@@ -71,3 +72,8 @@ class QCL_classifier(nn.Module):
         x = torch.flatten(x, start_dim=1)
         x = self.ql(x)
         return x[:, :self.num_classes]
+
+    def visualize_circuit(self, x, weights, save_path):
+        fig, ax = qml.draw_mpl(circuit)(x, weights)
+        fig.show()
+        plt.savefig(save_path)

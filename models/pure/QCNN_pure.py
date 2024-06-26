@@ -26,9 +26,10 @@ def circuit(inputs, weights_conv1, weights_conv2, weights_pool1, weights_pool2, 
 
 
 @qml.qnode(dev, interface='torch')
-def circuit_state(inputs, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc):
+def circuit_state(inputs, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc, exec_=True):
     AmplitudeEmbedding(inputs, wires=range(n_qubits), normalize=True, pad_with=0)
-    pure_qcnn_circuit(n_qubits, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc)
+    if exec_:
+        pure_qcnn_circuit(n_qubits, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc)
     return qml.state()
 
 
@@ -79,5 +80,11 @@ class QCNN_classifier(nn.Module):
             return x[:, torch.tensor([0, 2])]
         else:
             return x[:, torch.tensor([0, 2, 4])]
+
+    def visualize_circuit(self, x, weights, save_path):
+        import matplotlib.pyplot as plt
+        fig, ax = qml.draw_mpl(circuit)(x, weights[0], weights[1], weights[2], weights[3], weights[4])
+        fig.show()
+        plt.savefig(save_path)
 
 

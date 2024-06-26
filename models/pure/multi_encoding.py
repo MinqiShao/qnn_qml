@@ -6,7 +6,6 @@
 import pennylane as qml
 import torch.nn as nn
 import torch
-from math import ceil
 from models.circuits import pure_multi_circuit
 
 torch.manual_seed(0)
@@ -75,3 +74,10 @@ class MultiEncoding(nn.Module):
         x = self.lr1(x)
         x = self.fc2(x)
         return x
+
+    def visualize_circuit(self, x, weights, save_path):
+        import matplotlib.pyplot as plt
+        x = x.numpy()
+        fig, ax = qml.draw_mpl(circuit)(x[0, :16], weights)
+        fig.show()
+        plt.savefig(save_path)

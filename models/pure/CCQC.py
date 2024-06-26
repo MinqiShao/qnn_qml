@@ -23,9 +23,10 @@ def circuit(inputs, weights, weights_1, weights_2):
 
 
 @qml.qnode(dev, interface='torch')
-def circuit_state(inputs, weights, weights_1, weights_2):
+def circuit_state(inputs, weights, weights_1, weights_2, exec_=True):
     AmplitudeEmbedding(inputs, wires=range(n_qubits), normalize=True, pad_with=0)
-    ccqc_circuit(n_qubits, depth, weights, weights_1, weights_2)
+    if exec_:
+        ccqc_circuit(n_qubits, depth, weights, weights_1, weights_2)
     return qml.state()
 
 
@@ -68,3 +69,9 @@ class CCQC_classifier(nn.Module):
         x = torch.flatten(x, start_dim=1)
         x = self.ql(x)
         return x[:, :self.num_classes]
+
+    def visualize_circuit(self, x, weights, save_path):
+        import matplotlib.pyplot as plt
+        fig, ax = qml.draw_mpl(circuit)(x, weights[0], weights[1], weights[2])
+        fig.show()
+        plt.savefig(save_path)
