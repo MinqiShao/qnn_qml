@@ -23,6 +23,8 @@ def get_arguments():
     parser.add_argument('--class_idx', nargs='+', type=int, default=[0, 1])
     parser.add_argument('--resize', action='store_true')
     parser.add_argument('--data_scale', type=float, default=1.0)
+    parser.add_argument('--num_test_img', type=int, default=10)
+    parser.add_argument('--criteria', type=str, default='prob', choices=['prob', 'ent'])
     return parser.parse_args()
 
 

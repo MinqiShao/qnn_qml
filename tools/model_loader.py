@@ -28,7 +28,7 @@ def load_model(v, model_type, class_idx, device, data_size=28, e_type='amplitude
         elif model_type == 'ccqc':
             model = CCQC_classifier(e=e_type, num_classes=num_classes)
         elif model_type == 'pure_qcnn':
-            model = QCNN_c()
+            model = QCNN_c(num_classes=num_classes)
     elif v == 'tq':
         if model_type == 'pure_single':
             model = SingleEncoding_(device=device, num_classes=num_classes, img_size=data_size)
@@ -52,7 +52,7 @@ def load_model_from_path(conf, device):
                                  str(conf.class_idx) + '.pth')
     print(f'load model from: {mode_path}...')
     model = load_model(v=conf.version, model_type=conf.structure, class_idx=conf.class_idx,
-                                 device=device, data_size=28, e_type=conf.encoding)
+                       device=device, data_size=28, e_type=conf.encoding)
     model.load_state_dict(torch.load(mode_path))
     model.eval()
     return model

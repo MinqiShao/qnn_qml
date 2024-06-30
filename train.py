@@ -97,6 +97,8 @@ def train(model_type=conf.structure, class_idx=conf.class_idx, e_type=conf.encod
             log('save best!!')
             torch.save(model.state_dict(), model_save_path)
 
+        # todo out_state的纠缠
+
 
 if __name__ == '__main__':
     train()

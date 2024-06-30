@@ -6,7 +6,8 @@ from tools.model_loader import load_model_from_path
 from tools.data_loader import load_test_data
 from config import *
 from tools.entanglement import *
-from models.circuits import weight_dict, in_out_state, whole_density_matrix, partial_density_matrix
+from models.circuits import weight_dict
+from tools.internal import *
 from tools import Log
 
 conf = get_arguments()
@@ -73,9 +74,10 @@ def MW(test_x, params):
     out_list = []
     for x in tqdm(test_x):
         x = torch.flatten(x, start_dim=0)
-        in_dm_list, out_dm_list = partial_density_matrix(x, conf.structure, params)
-        in_list.append(Meyer_Wallach(in_dm_list))
-        out_list.append(Meyer_Wallach(out_dm_list))
+        in_state, out_state = in_out_state(x, conf.structure, params)
+        _, ent_in, ent_out = entQ(in_state, out_state, 1)
+        in_list.append(in_state)
+        out_list.append(out_state)
     in_list = torch.tensor(in_list)
     out_list = torch.tensor(out_list)
     return in_list, out_list, out_list-in_list
@@ -84,10 +86,11 @@ def MW(test_x, params):
 def entropy(test_x, params):
     in_list = []
     out_list = []
+    class_idx = conf.class_idx
     for x in tqdm(test_x):
         x = torch.flatten(x, start_dim=0)
         in_dm, out_dm = whole_density_matrix(x, conf.structure, params)
-        in_en, out_en = entanglement_entropy(in_dm), entanglement_entropy(out_dm)
+        in_en, out_en = entanglement_entropy(in_dm, class_idx), entanglement_entropy(out_dm, class_idx)
         in_list.append(in_en)
         out_list.append(out_en)
     in_list = torch.tensor(in_list)
@@ -109,5 +112,5 @@ def negativity(test_x, params):
     return in_list, out_list, out_list - in_list
 
 
-analyse_qinfo(c_n='negativity')
+analyse_qinfo(c_n='MW')
 # visualize_circuit()

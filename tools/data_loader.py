@@ -54,7 +54,10 @@ def filter_data(data_set, class_idx=[0, 1], scale=1.0):
     idx = torch.tensor([], dtype=torch.long)
     for i in range(num_class):
         c_idx = torch.where(y == class_idx[i])[0]
-        c_idx = c_idx[:int(len(c_idx) * scale)]
+        if type(scale) is int:
+            c_idx = c_idx[:scale]
+        else:
+            c_idx = c_idx[:int(len(c_idx) * scale)]
         print(f'{len(c_idx)} data from class {class_idx[i]}')
         idx = torch.cat((idx, c_idx))
 
@@ -66,7 +69,8 @@ def load_test_data(conf):
     dir = conf.data_dir
     resize = conf.resize
     class_idx = conf.class_idx
-    scale = conf.data_scale
+    # scale = conf.data_scale
+    num_test = conf.num_test_img
     if name == 'mnist':
         test_set = datasets.MNIST(dir, train=False, download=True)
     elif name == 'fashion_mnist':
@@ -74,9 +78,9 @@ def load_test_data(conf):
     elif name == 'emnist':
         test_set = datasets.EMNIST(dir, train=False, download=True, split='digits')
 
-    scaled_test_idx = filter_data(test_set, class_idx, scale)
-    print(f'load {name} data for {len(class_idx)} classification, classes: {class_idx}, scale: {scale * 100}%, '
-          f'num of testing data: {len(scaled_test_idx)}')
+    scaled_test_idx = filter_data(test_set, class_idx, num_test)
+    print(f'load {name} data for {len(class_idx)} classification, classes: {class_idx}, '
+          f'num of testing data: {num_test}')
     if resize:
         test_set.data = feature_redc_test(test_set.data.clone().float() / 255.0, f_type=conf.reduction)
         print(f'feature reduction {conf.reduction} has completed')

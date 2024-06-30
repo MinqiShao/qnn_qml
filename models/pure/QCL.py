@@ -16,14 +16,16 @@ depth = 5
 dev = qml.device('default.qubit', wires=n_qubits)
 
 
-@qml.qnode(dev, interface='torch')
+# @qml.qnode(dev, interface='torch')
+@qml.qnode(dev, diff_method="backprop")
 def circuit(inputs, weights):
     AmplitudeEmbedding(inputs, wires=range(n_qubits), normalize=True, pad_with=0)
     QCL_circuit(depth, n_qubits, weights)
     return [qml.expval(qml.PauliZ(i)) for i in range(n_qubits)]
 
 
-@qml.qnode(dev, interface='torch')
+# @qml.qnode(dev, interface='torch')
+@qml.qnode(dev, diff_method="backprop")
 def circuit_state(inputs, weights, exec_=True):
     AmplitudeEmbedding(inputs, wires=range(n_qubits), normalize=True, pad_with=0)
     if exec_:
@@ -32,7 +34,8 @@ def circuit_state(inputs, weights, exec_=True):
     return qml.state()
 
 
-@qml.qnode(dev, interface='torch')
+#@qml.qnode(dev, interface='torch')
+@qml.qnode(dev, diff_method="backprop")
 def circuit_dm(inputs, weights, q_idx, exec_=True):
     AmplitudeEmbedding(inputs, wires=range(n_qubits), normalize=True, pad_with=0)
     if exec_:
