@@ -8,11 +8,13 @@ import torch
 import torch.nn as nn
 from pennylane.templates.embeddings import AmplitudeEmbedding
 import math
-from models.circuits import pure_qcnn_circuit
+from models.circuits import pure_qcnn_circuit, pure_qcnn_block1, pure_qcnn_block2
 from tools.embedding import data_embedding_qml
 
-
 n_qubits = 10
+l = []
+for q in range(n_qubits):
+    l.append(q)
 dev = qml.device('default.qubit', wires=n_qubits)
 
 
@@ -34,6 +36,18 @@ def circuit_state(inputs, weights_conv1, weights_conv2, weights_pool1, weights_p
 
 
 @qml.qnode(dev, interface='torch')
+def circuit_prob(inputs, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc, part=0):
+    AmplitudeEmbedding(inputs, wires=range(n_qubits), normalize=True, pad_with=0)
+    if part == 0:
+        pure_qcnn_block1(n_qubits, weights_conv1, weights_pool1)
+    elif part == 1:
+        pure_qcnn_block2(n_qubits, weights_conv1, weights_conv2, weights_pool1, weights_pool2)
+    elif part == 2:
+        pure_qcnn_circuit(n_qubits, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc)
+    return qml.probs(wires=l)
+
+
+@qml.qnode(dev, interface='torch')
 def circuit_dm(q_idx, inputs, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc, exec_=True):
     AmplitudeEmbedding(inputs, wires=range(n_qubits), normalize=True, pad_with=0)
     if exec_:
@@ -44,7 +58,8 @@ def circuit_dm(q_idx, inputs, weights_conv1, weights_conv2, weights_pool1, weigh
 def get_density_matrix(inputs, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc, exec_=True):
     dm_list = []
     for q in range(n_qubits):
-        dm_list.append(circuit_dm(q, inputs, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc, exec_))
+        dm_list.append(
+            circuit_dm(q, inputs, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc, exec_))
     return dm_list
 
 
@@ -60,11 +75,12 @@ class QCNN_classifier(nn.Module):
     def __init__(self, num_classes=2, e='amplitude'):
         super(QCNN_classifier, self).__init__()
         self.num_classes = num_classes
+        self.depth = 3
 
         self.cir = qml.qnn.TorchLayer(circuit, {'weights_conv1': (n_qubits, 15),
-                                                'weights_conv2': (math.ceil((n_qubits-2)/2), 15),
-                                                'weights_pool1': (math.ceil(n_qubits/2), 2),
-                                                'weights_pool2': (math.ceil((n_qubits-2)/4), 2),
+                                                'weights_conv2': (math.ceil((n_qubits - 2) / 2), 15),
+                                                'weights_pool1': (math.ceil(n_qubits / 2), 2),
+                                                'weights_pool2': (math.ceil((n_qubits - 2) / 4), 2),
                                                 'weights_fc': (3,)})
 
     def forward(self, x, y):
@@ -86,5 +102,3 @@ class QCNN_classifier(nn.Module):
         fig, ax = qml.draw_mpl(circuit)(x, weights[0], weights[1], weights[2], weights[3], weights[4])
         fig.show()
         plt.savefig(save_path)
-
-

@@ -9,8 +9,8 @@ import torchvision.transforms.functional as F
 
 def load_dataset(name, dir, reduction, resize=False, class_idx=[0, 1], scale=1.0):
     if name == 'mnist':
-        train_set = datasets.MNIST(dir, train=True, download=True, transform=transforms.ToTensor())
-        test_set = datasets.MNIST(dir, train=False, download=True, transform=transforms.ToTensor())
+        train_set = datasets.MNIST(dir, train=True, download=True, transform=None if resize else transforms.ToTensor())
+        test_set = datasets.MNIST(dir, train=False, download=True, transform=None if resize else transforms.ToTensor())
     elif name == 'fashion_mnist':
         train_set = datasets.FashionMNIST(dir, train=True, download=True, transform=None if resize else transforms.ToTensor())
         test_set = datasets.FashionMNIST(dir, train=False, download=True, transform=None if resize else transforms.ToTensor())

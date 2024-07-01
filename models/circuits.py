@@ -1,117 +1,53 @@
 """
-circuit structures
+circuit structures, sub-structure
 dict key names for saving weights
 """
 import pennylane as qml
 from math import ceil
+from models.layers import *
 
 
-##### circuit structures
+########## QCL ##########
 def QCL_circuit(depth, n_qubits, weights):
     for d in range(depth):
-        for i in range(n_qubits-1):
-            qml.CNOT(wires=[i, i+1])
-        qml.CNOT(wires=[n_qubits-1, 0])
-        for i in range(n_qubits):
-            qml.RX(weights[d, i, 0], wires=i)
-            qml.RZ(weights[d, i, 1], wires=i)
-            qml.RX(weights[d, i, 2], wires=i)
+        QCL_block(d, n_qubits, weights)
 
 
+########## QCNN ##########
 def pure_qcnn_circuit(n_qubits, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc):
     # conv1
-    for i in range(0, n_qubits, 2):
-        qml.U3(weights_conv1[i, 0], weights_conv1[i, 1], weights_conv1[i, 2], wires=i)
-        qml.U3(weights_conv1[i, 3], weights_conv1[i, 4], weights_conv1[i, 5], wires=i + 1)
-        qml.CNOT(wires=[i, i + 1])
-        qml.RY(weights_conv1[i, 6], wires=i)
-        qml.RZ(weights_conv1[i, 7], wires=i + 1)
-        qml.CNOT(wires=[i + 1, i])
-        qml.RY(weights_conv1[i, 8], wires=i)
-        qml.CNOT(wires=[i, i + 1])
-        qml.U3(weights_conv1[i, 9], weights_conv1[i, 10], weights_conv1[i, 11], wires=i)
-        qml.U3(weights_conv1[i, 12], weights_conv1[i, 13], weights_conv1[i, 14], wires=i + 1)
-    for i in range(1, n_qubits - 1, 2):
-        qml.U3(weights_conv1[i, 0], weights_conv1[i, 1], weights_conv1[i, 2], wires=i)
-        qml.U3(weights_conv1[i, 3], weights_conv1[i, 4], weights_conv1[i, 5], wires=i + 1)
-        qml.CNOT(wires=[i, i + 1])
-        qml.RY(weights_conv1[i, 6], wires=i)
-        qml.RZ(weights_conv1[i, 7], wires=i + 1)
-        qml.CNOT(wires=[i + 1, i])
-        qml.RY(weights_conv1[i, 8], wires=i)
-        qml.CNOT(wires=[i, i + 1])
-        qml.U3(weights_conv1[i, 9], weights_conv1[i, 10], weights_conv1[i, 11], wires=i)
-        qml.U3(weights_conv1[i, 12], weights_conv1[i, 13], weights_conv1[i, 14], wires=i + 1)
-    qml.U3(weights_conv1[7, 0], weights_conv1[7, 1], weights_conv1[7, 2], wires=0)
-    qml.U3(weights_conv1[7, 3], weights_conv1[7, 4], weights_conv1[7, 5], wires=n_qubits - 1)
-    qml.CNOT(wires=[0, n_qubits - 1])
-    qml.RY(weights_conv1[7, 6], wires=0)
-    qml.RZ(weights_conv1[7, 7], wires=n_qubits - 1)
-    qml.CNOT(wires=[n_qubits - 1, 0])
-    qml.RY(weights_conv1[7, 8], wires=0)
-    qml.CNOT(wires=[0, n_qubits - 1])
-    qml.U3(weights_conv1[7, 9], weights_conv1[7, 10], weights_conv1[7, 11], wires=0)
-    qml.U3(weights_conv1[7, 12], weights_conv1[7, 13], weights_conv1[7, 14], wires=n_qubits - 1)
+    QCNN_conv1(n_qubits, weights_conv1)
 
     # pool1
-    for idx, i in enumerate(range(0, n_qubits, 2)):
-        qml.CRZ(weights_pool1[idx, 0], wires=[i + 1, i])
-        qml.PauliX(wires=i + 1)
-        qml.CRX(weights_pool1[idx, 1], wires=[i + 1, i])
+    QCNN_pool1(n_qubits, weights_pool1)
 
     # conv2
-    for idx, i in enumerate(range(0, n_qubits - 2, 2)):
-        qml.U3(weights_conv2[idx, 0], weights_conv2[idx, 1], weights_conv2[idx, 2], wires=i)
-        qml.U3(weights_conv2[idx, 3], weights_conv2[idx, 4], weights_conv2[idx, 5], wires=i + 2)
-        qml.CNOT(wires=[i, i + 2])
-        qml.RY(weights_conv2[idx, 6], wires=i)
-        qml.RZ(weights_conv2[idx, 7], wires=i + 2)
-        qml.CNOT(wires=[i + 2, i])
-        qml.RY(weights_conv2[idx, 8], wires=i)
-        qml.CNOT(wires=[i, i + 2])
-        qml.U3(weights_conv2[idx, 9], weights_conv2[idx, 10], weights_conv2[idx, 11], wires=i)
-        qml.U3(weights_conv2[idx, 12], weights_conv2[idx, 13], weights_conv2[idx, 14], wires=i + 2)
+    QCNN_conv2(n_qubits, weights_conv2)
 
     # pool2
-    for idx, i in enumerate(range(0, n_qubits - 2, 4)):
-        qml.CRZ(weights_pool2[idx, 0], wires=[i + 2, i])
-        qml.PauliX(wires=i + 2)
-        qml.CRX(weights_pool2[idx, 1], wires=[i + 2, i])
+    QCNN_pool2(n_qubits, weights_pool2)
 
     # fc
-    qml.CNOT(wires=[0, 4])
-    qml.CNOT(wires=[2, 4])
-    qml.CNOT(wires=[4, 0])
-    qml.RX(weights_fc[0], wires=0)
-    qml.RX(weights_fc[1], wires=2)
-    qml.RX(weights_fc[2], wires=4)
+    QCNN_fc(weights_fc)
+
+def pure_qcnn_block1(n_qubits, weights_conv1, weights_pool1):
+    QCNN_conv1(n_qubits, weights_conv1)
+    QCNN_pool1(n_qubits, weights_pool1)
+
+def pure_qcnn_block2(n_qubits, weights_conv1, weights_conv2, weights_pool1, weights_pool2):
+    QCNN_conv1(n_qubits, weights_conv1)
+    QCNN_pool1(n_qubits, weights_pool1)
+    QCNN_conv2(n_qubits, weights_conv2)
+    QCNN_pool2(n_qubits, weights_pool2)
 
 
+########## CCQC ##########
 def ccqc_circuit(n_qubits, depth, weights, weights_1, weights_2):
     for d in range(1, depth+1):
-        if d % 2:
-            for i in range(n_qubits):
-                qml.RX(weights[d-1, i, 0], wires=i)
-                qml.RZ(weights[d-1, i, 1], wires=i)
-                qml.RX(weights[d-1, i, 2], wires=i)
-            qml.CPhase(weights_1[d-1], wires=[0, n_qubits-1])
-            qml.RX(weights_2[d-1], wires=n_qubits-1)
-            for i in range(1, n_qubits):
-                qml.CPhase(weights[d-1, i, 3], wires=[n_qubits-i, n_qubits-i-1])
-                qml.RX(weights[d-1, i, 4], wires=n_qubits-i-1)
-        else:
-            for i in range(n_qubits):
-                qml.RX(weights[d-1, i, 0], wires=i)
-                qml.RZ(weights[d-1, i, 1], wires=i)
-                qml.RX(weights[d-1, i, 2], wires=i)
-            j = 0
-            for i in range(n_qubits):
-                nj = (j+(n_qubits-3)) % n_qubits
-                qml.CPhase(weights[d-1, i, 3], wires=[j, nj])
-                qml.RX(weights[d-1, i, 4], wires=nj)
-                j = nj
+        CCQC_block(d, n_qubits, weights, weights_1, weights_2)
 
 
+########## Single/Multi Encoding ##########
 def pure_single_circuit(n_qubits, depth, weights):
     for layer in range(depth):
         for i in range(n_qubits):
@@ -140,11 +76,14 @@ def pure_multi_circuit(n_qubits, depth, inputs, weights):
             qml.RY(weights[d, j], wires=j % n_qubits)
 
 
-##### weight dict
+########## dict ##########
 weight_dict = {'qcl': 'ql.weights',
                'pure_qcnn': ['cir.weights_conv1', 'cir.weights_conv2', 'cir.weights_pool1', 'cir.weights_pool2', 'cir.weights_fc'],
                'ccqc': ['ql.weights', 'ql.weights_1', 'ql.weights_2'],
                'pure_single': 'qc.ql1.weights',
                'pure_multi': 'qc.ql1.weights'}
+block_dict = {'qcl': [1, 2, 3, 4, 5],  # 'block1', 'block2', 'block3', 'block4', 'block5'
+              'ccqc': [1, 2, 3, 4, 5],
+              'pure_qcnn': [0, 1, 2]}  # 0: whole, 1: conv1+pool1, 2: conv1+pool1+conv2+pool2
 
 

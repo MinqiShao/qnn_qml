@@ -1,5 +1,6 @@
 from models import *
 from tq_models import *
+from models.circuits import weight_dict
 import torch
 import os
 
@@ -43,7 +44,7 @@ def load_model(v, model_type, class_idx, device, data_size=28, e_type='amplitude
     return model
 
 
-def load_model_from_path(conf, device):
+def load_params_from_path(conf, device):
     if conf.resize:
         mode_path = os.path.join(conf.model_dir, conf.dataset, conf.version, conf.structure,
                                  conf.reduction + '_' + str(conf.class_idx) + '.pth')
@@ -55,4 +56,23 @@ def load_model_from_path(conf, device):
                        device=device, data_size=28, e_type=conf.encoding)
     model.load_state_dict(torch.load(mode_path))
     model.eval()
-    return model
+    state_dict = model.state_dict()
+    weight_name = weight_dict[conf.structure]
+    if type(weight_name) is list:
+        params = []
+        for i in range(len(weight_name)):
+            params.append(state_dict[weight_name[i]])
+    else:
+        params = state_dict[weight_name]
+    return params
+
+
+def load_train_params(structure, state_dict):
+    weight_name = weight_dict[structure]
+    if type(weight_name) is list:
+        params = []
+        for i in range(len(weight_name)):
+            params.append(state_dict[weight_name[i]])
+    else:
+        params = state_dict[weight_name]
+    return params

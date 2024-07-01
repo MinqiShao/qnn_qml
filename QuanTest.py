@@ -5,7 +5,7 @@ from models.circuits import weight_dict, QCL_circuit
 from tools.internal import *
 from tools.entanglement import *
 from tools.data_loader import load_test_data
-from tools.model_loader import load_model_from_path
+from tools.model_loader import load_params_from_path
 from tools.adv_attack import *
 from pennylane.math import fidelity, trace_distance
 from pennylane import numpy as np, AmplitudeEmbedding
@@ -23,16 +23,8 @@ ent_k = 1
 
 
 def gen_adv():
-    model = load_model_from_path(conf, device)
     test_x, test_y = load_test_data(conf)
-    state_dict = model.state_dict()
-    weight_name = weight_dict[conf.structure]
-    if type(weight_name) is list:
-        params = []
-        for i in range(len(weight_name)):
-            params.append(state_dict[weight_name[i]])
-    else:
-        params = state_dict[weight_name]
+    params = load_params_from_path(conf, device)
 
     adv_num = 0
     f_list = []

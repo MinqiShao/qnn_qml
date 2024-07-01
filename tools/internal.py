@@ -61,3 +61,14 @@ def circuit_state(in_state, conf, params):
         out_state = CCQC.circuit_state(in_state, params[0], params[1], params[2])
     return out_state
 
+
+def block_prob(x, conf, params, depth=1):
+    # 单个样本
+    if conf.structure == 'qcl':
+        prob = QCL.circuit_prob(x, params, depth_=depth)
+    elif conf.structure == 'pure_qcnn':
+        prob = QCNN_pure.circuit_prob(x, params[0], params[1], params[2], params[3], params[4], part=depth)
+    elif conf.structure == 'ccqc':
+        prob = CCQC.circuit_prob(x, params[0], params[1], params[2], depth_=depth)
+
+    return prob

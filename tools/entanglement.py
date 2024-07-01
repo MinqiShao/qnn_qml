@@ -3,11 +3,53 @@ compute entanglement
 Meyer_Wallach
 """
 import math
-from pennylane import numpy as np
 import torch
-import scipy.linalg as la
-from qiskit.quantum_info import DensityMatrix, negativity, entropy, Statevector
+from tqdm import tqdm
+from qiskit.quantum_info import DensityMatrix, negativity, Statevector
 from pennylane.math import vn_entropy, max_entropy, reduced_dm
+from tools.internal import *
+
+def MW(test_x, params, conf):
+    in_list = []
+    out_list = []
+    for x in tqdm(test_x):
+        x = torch.flatten(x, start_dim=0)
+        in_state, out_state = in_out_state(x, conf.structure, params)
+        _, ent_in, ent_out = entQ(in_state, out_state, 1)
+        in_list.append(ent_in)
+        out_list.append(ent_out)
+    in_list = torch.tensor(in_list)
+    out_list = torch.tensor(out_list)
+    return in_list, out_list, out_list-in_list
+
+
+def entropy(test_x, params, conf):
+    in_list = []
+    out_list = []
+    class_idx = conf.class_idx
+    for x in tqdm(test_x):
+        x = torch.flatten(x, start_dim=0)
+        in_dm, out_dm = whole_density_matrix(x, conf.structure, params)
+        in_en, out_en = entanglement_entropy(in_dm, class_idx), entanglement_entropy(out_dm, class_idx)
+        in_list.append(in_en)
+        out_list.append(out_en)
+    in_list = torch.tensor(in_list)
+    out_list = torch.tensor(out_list)
+    return in_list, out_list, out_list-in_list
+
+
+def neg(test_x, params, conf):
+    in_list = []
+    out_list = []
+    for x in tqdm(test_x):
+        x = torch.flatten(x, start_dim=0)
+        in_state, out_state = in_out_state(x, conf.structure, params)
+        in_en, out_en = avg_negativity(in_state), avg_negativity(out_state)
+        in_list.append(in_en)
+        out_list.append(out_en)
+    in_list = torch.tensor(in_list)
+    out_list = torch.tensor(out_list)
+    return in_list, out_list, out_list - in_list
 
 
 #### Entanglement for single sample

@@ -3,7 +3,8 @@ import os
 import torch
 from config import *
 from tools.data_loader import load_dataset
-from tools.model_loader import load_model
+from tools.model_loader import load_model, load_train_params
+from tools.entanglement import MW
 from tools import Log
 import time
 from sklearn.metrics import accuracy_score
@@ -31,9 +32,10 @@ def train(model_type=conf.structure, class_idx=conf.class_idx, e_type=conf.encod
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones)
 
-    train_data, test_data, _, _, _, _ = load_dataset(name=conf.dataset, dir=conf.data_dir, reduction=conf.reduction,
+    train_data, test_data, _, _, test_x, test_y = load_dataset(name=conf.dataset, dir=conf.data_dir, reduction=conf.reduction,
                                                      resize=conf.resize,
                                                      class_idx=class_idx, scale=conf.data_scale)
+    test_x = test_x.float() / 255.0
 
     model = model.to(device)
     best_acc = 0
@@ -49,6 +51,10 @@ def train(model_type=conf.structure, class_idx=conf.class_idx, e_type=conf.encod
     if os.path.exists(log_path):
         os.remove(log_path)
     log = Log(log_path)
+
+    ent_c = torch.zeros((epochs, len(conf.class_idx)))
+    ent_in = torch.zeros_like(ent_c)
+    ent_out = torch.zeros_like(ent_c)
     for epoch in range(epochs):
         log(f'===== Epoch {epoch + 1} =====')
         s_time = time.perf_counter()
@@ -81,14 +87,20 @@ def train(model_type=conf.structure, class_idx=conf.class_idx, e_type=conf.encod
         model.eval()
         y_trues = []
         y_preds = []
-        for i, (images, labels) in enumerate(test_data):
-            images, labels = images.to(device), labels.to(device)
-            with torch.no_grad():
-                outputs = model.predict(images)
-                # loss = criterion(outputs, labels)
-                loss = model(images, labels)
-            y_trues += labels.cpu().numpy().tolist()
-            y_preds += outputs.data.cpu().numpy().argmax(axis=1).tolist()
+        # for i, (images, labels) in enumerate(test_data):
+        #     images, labels = images.to(device), labels.to(device)
+        #     with torch.no_grad():
+        #         outputs = model.predict(images)
+        #         # loss = criterion(outputs, labels)
+        #     y_trues += labels.cpu().numpy().tolist()
+        #     y_preds += outputs.data.cpu().numpy().argmax(axis=1).tolist()
+
+        with torch.no_grad():
+            outputs = model.predict(test_x)
+            loss = model(test_x, test_y)
+        y_trues += test_y.cpu().numpy().tolist()
+        y_preds += outputs.data.cpu().numpy().argmax(axis=1).tolist()
+
         test_acc = accuracy_score(y_trues, y_preds)
         log('Test: Loss: {:.6f}, Acc: {:.6f}'.format(loss.item(), test_acc))
 
@@ -97,7 +109,17 @@ def train(model_type=conf.structure, class_idx=conf.class_idx, e_type=conf.encod
             log('save best!!')
             torch.save(model.state_dict(), model_save_path)
 
-        # todo out_state的纠缠
+        # 按照类别计算纠缠
+        # todo 折线图
+        # params = load_train_params(conf.structure, model.state_dict())
+        # for c in conf.class_idx:
+        #     img_c = test_x[torch.where(test_y == c)[0]]
+        #     ent_in_list, ent_out_list, ent_c_list = MW(img_c, params, conf)
+        #     ent_c[epoch, c] = torch.mean(ent_c_list)
+        #     ent_in[epoch, c] = torch.mean(ent_in_list)
+        #     ent_out[epoch, c] = torch.mean(ent_out_list)
+
+        # log('Ent: in: {}, out: {}, c: {}'.format(ent_in.tolist(), ent_out.tolist(), ent_c.tolist()))
 
 
 if __name__ == '__main__':

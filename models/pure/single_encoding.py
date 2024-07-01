@@ -92,7 +92,7 @@ class SingleEncoding(nn.Module):
 
     def predict(self, x):
         if len(x.shape) < 4:
-            x = x.unsqueeze(1)
+            x = x.reshape(x.shape[0], 1, 28, 28)
         x = self.qc(x)
         x = self.fc1(x)
         x = F.relu(x)
