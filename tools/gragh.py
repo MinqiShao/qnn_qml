@@ -1,8 +1,51 @@
 import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
+import seaborn as sns
+import pandas as pd
 
-def line_graph(data):
-    pass
+
+def line_graph(x, y, save_path, label_n='ent_out'):
+    """
+    折线图
+    :param x: 横坐标list，train.py: epoches
+    :param y: 纵坐标list, train.py: [mean_ent_out] or [mean_ent_c]
+    :param save_path:
+    :return:
+    """
+    fig = plt.figure(figsize=(10, 5))
+    plt.plot(x, y, c='g', label=label_n)
+    plt.xlabel('Epoch')
+    plt.ylabel('Entanglement')
+    plt.legend(loc='upper right')
+    # y_sticks = range(0, 1, 0.01)
+    # plt.yticks(y_sticks)
+    plt.show()
+    plt.savefig(save_path)
+
+
+def box_graph(x, y, data_num, save_path):
+    """
+    箱图
+    :param x: train.py: [epoch]
+    :param y: train.py: [[ent_in], [ent_out], [ent_c]]
+    :param save_path:
+    :return:
+    """
+    data = {
+        'Epoch': [], 'Ent': [], 'group': []
+    }
+    for epoch in x:
+        data['Epoch'] += [epoch+1]*data_num*3
+        data['Ent'] += y[0][epoch] + y[1][epoch] + y[2][epoch]
+        data['group'] += ['ent_in'] * data_num + ['ent_out'] * data_num + ['ent_c'] * data_num
+    df = pd.DataFrame(data)
+    plt.figure(figsize=(10, 5))
+    sns.boxplot(x='Epoch', y='Ent', hue='group', data=df, showfliers=True)
+    # plt.xlabel('Epoch')
+    # plt.ylabel('Entanglement')
+    plt.legend(loc='upper right')
+    plt.show()
+    plt.savefig(save_path)
 
 
 def dot_graph(data, num_per_class, save_path):

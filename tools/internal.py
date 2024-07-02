@@ -1,4 +1,4 @@
-from models.pure import QCL, QCNN_pure, CCQC
+from models.pure import QCL, QCNN_pure, CCQC, single_encoding, multi_encoding
 import torch
 import pennylane as qml
 from pennylane import numpy as np
@@ -70,5 +70,13 @@ def block_prob(x, conf, params, depth=1):
         prob = QCNN_pure.circuit_prob(x, params[0], params[1], params[2], params[3], params[4], part=depth)
     elif conf.structure == 'ccqc':
         prob = CCQC.circuit_prob(x, params[0], params[1], params[2], depth_=depth)
+
+    return prob
+
+def kernel_prob(x, conf, params):
+    if conf.structure == 'pure_single':
+        prob = single_encoding.feat_prob(x, params)
+    elif conf.structure == 'pure_multi':
+        prob = multi_encoding.feat_prob(x, params)
 
     return prob

@@ -11,6 +11,9 @@ from models.circuits import pure_multi_circuit
 torch.manual_seed(0)
 
 n_qubits = 4
+l = []
+for q in range(n_qubits):
+    l.append(q)
 depth = 1
 kernel_size = n_qubits
 
@@ -30,9 +33,26 @@ def circuit_state(inputs, weights):
 
 
 @qml.qnode(dev, interface='torch')
-def circuit_dm(inputs, weights, q_idx=0):
-    pure_multi_circuit(n_qubits, depth, inputs, weights)
+def circuit_prob(inputs, weights, depth_=depth):
+    pure_multi_circuit(n_qubits, depth_, inputs, weights)
+    return qml.probs(wires=l)
+
+
+@qml.qnode(dev, interface='torch')
+def circuit_dm(inputs, weights, q_idx=0, exec_=True):
+    pure_multi_circuit(n_qubits, depth, inputs, weights, exec_)
     return qml.density_matrix(wires=q_idx)
+
+
+def feat_prob(x, weights):
+    if len(x.shape) < 3:
+        x = x.unsqueeze(0)
+    feat = torch.tensor([])
+    for i in range(0, x.shape[1]-1, 2):
+        for j in range(0, x.shape[2]-1, 2):
+            f = circuit_prob(torch.flatten(x[:, i:i+2, j:j+2]), weights, depth)
+            feat = torch.cat((feat, f))
+    return feat
 
 
 class Quan2d(nn.Module):

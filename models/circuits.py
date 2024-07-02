@@ -56,7 +56,7 @@ def pure_single_circuit(n_qubits, depth, weights):
             qml.RY(weights[layer, j], wires=j % n_qubits)
 
 
-def pure_multi_circuit(n_qubits, depth, inputs, weights):
+def pure_multi_circuit(n_qubits, depth, inputs, weights, exec_=True):
     ###### 与single不同
     var_per_qubit = int(len(inputs) / n_qubits) + 1  # num of param for each qubit
     gates = ['RZ', 'RY'] * ceil(var_per_qubit / 2)
@@ -68,12 +68,12 @@ def pure_multi_circuit(n_qubits, depth, inputs, weights):
             else:
                 pass
     ######
-
-    for d in range(depth):
-        for i in range(n_qubits):
-            qml.CRZ(weights[d, i], wires=[i, (i + 1) % n_qubits])
-        for j in range(n_qubits, n_qubits * 2):
-            qml.RY(weights[d, j], wires=j % n_qubits)
+    if exec_:
+        for d in range(depth):
+            for i in range(n_qubits):
+                qml.CRZ(weights[d, i], wires=[i, (i + 1) % n_qubits])
+            for j in range(n_qubits, n_qubits * 2):
+                qml.RY(weights[d, j], wires=j % n_qubits)
 
 
 ########## dict ##########
@@ -84,6 +84,8 @@ weight_dict = {'qcl': 'ql.weights',
                'pure_multi': 'qc.ql1.weights'}
 block_dict = {'qcl': [1, 2, 3, 4, 5],  # 'block1', 'block2', 'block3', 'block4', 'block5'
               'ccqc': [1, 2, 3, 4, 5],
-              'pure_qcnn': [0, 1, 2]}  # 0: whole, 1: conv1+pool1, 2: conv1+pool1+conv2+pool2
+              'pure_qcnn': [0, 1, 2],  # 0: whole, 1: conv1+pool1, 2: conv1+pool1+conv2+pool2
+              'pure_single': [0, 1],  # depth for each kernel
+              'pure_multi': [0]}
 
 
