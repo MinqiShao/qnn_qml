@@ -2,7 +2,7 @@ import os
 import pennylane as qml
 import torch
 from tools.model_loader import load_params_from_path
-from tools.data_loader import load_test_data
+from tools.data_loader import load_part_data
 from config import *
 from tools.entanglement import *
 
@@ -13,7 +13,7 @@ device = torch.device('cpu')
 
 
 def visualize_circuit():
-    test_x, test_y = load_test_data(conf)
+    test_x, test_y = load_part_data(conf)
     test_x, test_y = test_x[:1], test_y[:1]
     test_x = torch.flatten(test_x, start_dim=1)
 
@@ -27,14 +27,14 @@ def visualize_circuit():
 
 def analyse_qinfo(c_n='MW'):
     print(f'dataset: {conf.dataset}, model: {conf.structure}, class: {conf.class_idx}')
-    test_x, test_y = load_test_data(conf)
+    test_x, test_y = load_part_data(conf)
     params = load_params_from_path(conf, device)
 
     if c_n == 'MW':
         in_list, out_list, chan_list = MW(test_x, params, conf)
     elif c_n == 'entropy':
         in_list, out_list, chan_list = entropy(test_x, params, conf)
-    elif c_n == 'negativity':
+    elif c_n == 'neg':
         in_list, out_list, chan_list = neg(test_x, params, conf)
 
     log_dir = os.path.join(conf.analysis_dir, conf.dataset, conf.version, conf.structure)

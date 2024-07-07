@@ -6,10 +6,10 @@ import pennylane as qml
 import torch
 from pennylane.templates.embeddings import AmplitudeEmbedding
 import torch.nn as nn
-from models.circuits import ccqc_circuit
+from models.circuits import ccqc_circuit, qubit_dict
 
 
-n_qubits = 10
+n_qubits = qubit_dict['ccqc']
 l = []
 for q in range(n_qubits):
     l.append(q)

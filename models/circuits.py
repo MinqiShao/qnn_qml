@@ -87,5 +87,6 @@ block_dict = {'qcl': [1, 2, 3, 4, 5],  # 'block1', 'block2', 'block3', 'block4',
               'pure_qcnn': [0, 1, 2],  # 0: whole, 1: conv1+pool1, 2: conv1+pool1+conv2+pool2
               'pure_single': [0, 1],  # depth for each kernel
               'pure_multi': [0]}
+qubit_dict = {'qcl': 10, 'ccqc': 10, 'pure_qcnn': 10, 'pure_single': 4, 'pure_multi': 4}
 
 

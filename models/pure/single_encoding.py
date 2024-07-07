@@ -8,11 +8,11 @@ import pennylane as qml
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
-from models.circuits import pure_single_circuit
+from models.circuits import pure_single_circuit, qubit_dict
 
 torch.manual_seed(0)
 
-n_qubits = 4
+n_qubits = qubit_dict['pure_single']
 l = []
 for q in range(n_qubits):
     l.append(q)

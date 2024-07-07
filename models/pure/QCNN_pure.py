@@ -8,10 +8,10 @@ import torch
 import torch.nn as nn
 from pennylane.templates.embeddings import AmplitudeEmbedding
 import math
-from models.circuits import pure_qcnn_circuit, pure_qcnn_block1, pure_qcnn_block2
+from models.circuits import pure_qcnn_circuit, pure_qcnn_block1, pure_qcnn_block2, qubit_dict
 from tools.embedding import data_embedding_qml
 
-n_qubits = 10
+n_qubits = qubit_dict['pure_qcnn']
 l = []
 for q in range(n_qubits):
     l.append(q)

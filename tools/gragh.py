@@ -12,6 +12,7 @@ def line_graph(x, y, save_path, label_n='ent_out'):
     :param save_path:
     :return:
     """
+    x = [i+1 for i in x]
     fig = plt.figure(figsize=(10, 5))
     plt.plot(x, y, c='g', label=label_n)
     plt.xlabel('Epoch')
@@ -19,6 +20,7 @@ def line_graph(x, y, save_path, label_n='ent_out'):
     plt.legend(loc='upper right')
     # y_sticks = range(0, 1, 0.01)
     # plt.yticks(y_sticks)
+    plt.xticks(x)
     plt.show()
     plt.savefig(save_path)
 

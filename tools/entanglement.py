@@ -6,7 +6,7 @@ import math
 import torch
 from tqdm import tqdm
 from qiskit.quantum_info import DensityMatrix, negativity, Statevector
-from pennylane.math import vn_entropy, max_entropy, reduced_dm
+from pennylane.math import vn_entropy, max_entropy
 from tools.internal import *
 
 def MW(test_x, params, conf):
@@ -112,7 +112,7 @@ def entanglement_entropy(density_matrix, class_idx=[0, 1]):
     #         h_val += -x * math.log2(x)
     # rho = DensityMatrix(rho)
     # h_val = entropy(rho)
-    # todo indices如何选择 -> class_idx
+    # todo sub_sys如何选取
     sub_sys = class_idx
     h_val = vn_entropy(density_matrix, indices=sub_sys, base=2)
     max_en = max_entropy(density_matrix, indices=sub_sys, base=2)

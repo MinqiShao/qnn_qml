@@ -1,15 +1,15 @@
 import torch
-
+import os
 from config import *
-from models.circuits import weight_dict, QCL_circuit
-from tools.internal import *
+from torchvision.utils import save_image
 from tools.entanglement import *
-from tools.data_loader import load_test_data
+from tools.data_loader import load_part_data
 from tools.model_loader import load_params_from_path
 from tools.adv_attack import *
-from pennylane.math import fidelity, trace_distance
+from pennylane.math import fidelity, trace_distance, reduce_statevector
 from pennylane import numpy as np, AmplitudeEmbedding
 import time
+from tools.log import Log
 
 
 conf = get_arguments()
@@ -23,7 +23,7 @@ ent_k = 1
 
 
 def gen_adv():
-    test_x, test_y = load_test_data(conf)
+    test_x, test_y = load_part_data(conf)
     params = load_params_from_path(conf, device)
 
     adv_num = 0
@@ -32,7 +32,15 @@ def gen_adv():
     t_list = []
     t_sum = 0
     QEA_sum = 0
-    for i in range(test_img_num):
+
+    p = os.path.join(conf.analysis_dir, 'QuanTest', conf.dataset, conf.structure, str(conf.class_idx))
+    if not os.path.exists(p):
+        os.makedirs(p)
+    p_ = os.path.join(p, 'log.txt')
+    log = Log(p_)
+
+    for i in range(test_x.shape[0]):
+        log(f'Start for {i+1}th img...')
         x = torch.flatten(test_x[i], start_dim=0)
         x.requires_grad_(True)
 
@@ -63,24 +71,29 @@ def gen_adv():
 
             now_in_state, now_out_state = in_out_state(x, conf.structure, params)
             now_ent_c, now_ent_in, now_ent_out = entQ(now_in_state, now_out_state, ent_k)
-            # todo log
-            print(f'iter {iters}: QEA: {now_ent_c}, ent_in: {now_ent_in}, ent_out: {now_ent_out}')
+            log(f'iter {iters}: QEA: {now_ent_c}, ent_in: {now_ent_in}, ent_out: {now_ent_out}')
 
             _, new_y = circuit_pred(x, params, conf)
             if new_y != test_y[i]:
-                print('gen an adv img!')
-                print(f'ori_y: {test_y[i]}, new_y: {new_y}')
-                f = fidelity(now_in_state, in_state)
-                # t = trace_distance(now_in_state, in_state)
-                print(f'fidelity: {f}, trace distance: {0}')
+                log('gen an adv img!')
+                log(f'ori_y: {test_y[i]}, new_y: {new_y}')
+                idx = list(range(0, int(math.log2(now_in_state.shape[0]))))
+                f = fidelity(reduce_statevector(now_in_state, indices=idx), reduce_statevector(in_state, indices=idx))
+                t = trace_distance(reduce_statevector(now_in_state, indices=idx), reduce_statevector(in_state, indices=idx))
+                log(f'fidelity: {f}, trace distance: {t}')
                 adv_num += 1
                 f_list.append(f)
-                t_list.append(0)
+                t_list.append(t)
                 f_sum += f
-                t_sum += 0
+                t_sum += t
                 QEA_sum += now_ent_out - now_ent_in
-                # todo save avd img
+                adv_img = x.reshape(1, 28, 28)
+                save_image(adv_img, os.path.join(p, 'adv_class_' + str(test_y[i].item()) + str(i) + '.png'))
                 break
+
+            if iters == 500:
+                break
+    log(f'!!generated {adv_num} adv img out of {test_x.shape[0]} img!')
 
 
 if __name__ == '__main__':

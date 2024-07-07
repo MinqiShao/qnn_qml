@@ -73,6 +73,9 @@ def block_prob(x, conf, params, depth=1):
 
     return prob
 
+def block_exp(x, conf, params, depth=1):
+    pass
+
 def kernel_prob(x, conf, params):
     if conf.structure == 'pure_single':
         prob = single_encoding.feat_prob(x, params)
@@ -80,3 +83,6 @@ def kernel_prob(x, conf, params):
         prob = multi_encoding.feat_prob(x, params)
 
     return prob
+
+def kernel_exp(x, conf, params):
+    pass

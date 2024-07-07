@@ -6,11 +6,11 @@ import pennylane as qml
 import torch
 import torch.nn as nn
 from pennylane import AmplitudeEmbedding
-from models.circuits import QCL_circuit
+from models.circuits import QCL_circuit, qubit_dict
 import matplotlib.pyplot as plt
 
 
-n_qubits = 10
+n_qubits = qubit_dict['qcl']
 l = []
 for q in range(n_qubits):
     l.append(q)

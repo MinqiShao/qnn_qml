@@ -64,7 +64,7 @@ def filter_data(data_set, class_idx=[0, 1], scale=1.0):
     return idx
 
 
-def load_test_data(conf):
+def load_part_data(conf, train_=False):
     name = conf.dataset
     dir = conf.data_dir
     resize = conf.resize
@@ -72,21 +72,22 @@ def load_test_data(conf):
     # scale = conf.data_scale
     num_test = conf.num_test_img
     if name == 'mnist':
-        test_set = datasets.MNIST(dir, train=False, download=True)
+        d_set = datasets.MNIST(dir, train=train_, download=True)
     elif name == 'fashion_mnist':
-        test_set = datasets.FashionMNIST(dir, train=False, download=True)
+        d_set = datasets.FashionMNIST(dir, train=train_, download=True)
     elif name == 'emnist':
-        test_set = datasets.EMNIST(dir, train=False, download=True, split='digits')
+        d_set = datasets.EMNIST(dir, train=train_, download=True, split='digits')
 
-    scaled_test_idx = filter_data(test_set, class_idx, num_test)
-    print(f'load {name} data for {len(class_idx)} classification, classes: {class_idx}, '
-          f'num of testing data: {num_test}')
+    scaled_idx = filter_data(d_set, class_idx, num_test)
+    n = 'train' if train_ else 'test'
+    print(f'load {name} {n} data for {len(class_idx)} classification, classes: {class_idx}, '
+          f'num data of each class: {num_test}')
     if resize:
-        test_set.data = feature_redc_test(test_set.data.clone().float() / 255.0, f_type=conf.reduction)
+        d_set.data = feature_redc_test(d_set.data.clone().float() / 255.0, f_type=conf.reduction)
         print(f'feature reduction {conf.reduction} has completed')
     else:
-        test_set.data = test_set.data.clone().float() / 255.0
+        d_set.data = d_set.data.clone().float() / 255.0
 
-    test_set.targets = transform_labels(test_set.targets.clone(), class_idx)
+    d_set.targets = transform_labels(d_set.targets.clone(), class_idx)
 
-    return test_set.data[scaled_test_idx], test_set.targets[scaled_test_idx]
+    return d_set.data[scaled_idx], d_set.targets[scaled_idx]
