@@ -36,15 +36,18 @@ def circuit_state(inputs, weights_conv1, weights_conv2, weights_pool1, weights_p
 
 
 @qml.qnode(dev, interface='torch')
-def circuit_prob(inputs, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc, part=0):
+def circuit_prob(inputs, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc, depth=0, exp=False):
     AmplitudeEmbedding(inputs, wires=range(n_qubits), normalize=True, pad_with=0)
-    if part == 0:
+    if depth == 0:
         pure_qcnn_block1(n_qubits, weights_conv1, weights_pool1)
-    elif part == 1:
+    elif depth == 1:
         pure_qcnn_block2(n_qubits, weights_conv1, weights_conv2, weights_pool1, weights_pool2)
-    elif part == 2:
+    elif depth == 2:
         pure_qcnn_circuit(n_qubits, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc)
-    return qml.probs(wires=l)
+    if exp:
+        return [qml.expval(qml.PauliZ(i)) for i in range(n_qubits)]
+    else:
+        return qml.probs(wires=l)
 
 
 @qml.qnode(dev, interface='torch')

@@ -25,6 +25,7 @@ def get_arguments():
     parser.add_argument('--data_scale', type=float, default=1.0)
     parser.add_argument('--num_test_img', type=int, default=10)
     parser.add_argument('--criteria', type=str, default='prob', choices=['prob', 'ent'])
+    parser.add_argument('--coverage_cri', type=str, default='prob', choices=['prob', 'exp'])
     return parser.parse_args()
 
 

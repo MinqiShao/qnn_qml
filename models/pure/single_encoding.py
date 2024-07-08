@@ -64,8 +64,10 @@ def circuit_dm(inputs, weights, q_idx, exec_=True):
 
 
 def feat_prob(x, weights):
-    if len(x.shape) < 3:
+    if len(x.shape) == 2:
         x = x.unsqueeze(0)
+    elif len(x.shape) == 1:
+        x = x.reshape((1, 28, 28))
     feat = torch.tensor([])
     for i in range(0, x.shape[1]-1, 2):
         for j in range(0, x.shape[2]-1, 2):

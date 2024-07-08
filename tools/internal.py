@@ -67,14 +67,21 @@ def block_prob(x, conf, params, depth=1):
     if conf.structure == 'qcl':
         prob = QCL.circuit_prob(x, params, depth_=depth)
     elif conf.structure == 'pure_qcnn':
-        prob = QCNN_pure.circuit_prob(x, params[0], params[1], params[2], params[3], params[4], part=depth)
+        prob = QCNN_pure.circuit_prob(x, params[0], params[1], params[2], params[3], params[4], depth=depth)
     elif conf.structure == 'ccqc':
         prob = CCQC.circuit_prob(x, params[0], params[1], params[2], depth_=depth)
 
     return prob
 
 def block_exp(x, conf, params, depth=1):
-    pass
+    if conf.structure == 'qcl':
+        exp = QCL.circuit_prob(x, params, depth_=depth, exp=True)
+    elif conf.structure == 'pure_qcnn':
+        exp = QCNN_pure.circuit_prob(x, params[0], params[1], params[2], params[3], params[4], depth=depth, exp=True)
+    elif conf.structure == 'ccqc':
+        exp = CCQC.circuit_prob(x, params[0], params[1], params[2], depth_=depth, exp=True)
+
+    return exp
 
 def kernel_prob(x, conf, params):
     if conf.structure == 'pure_single':
