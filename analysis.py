@@ -13,7 +13,7 @@ device = torch.device('cpu')
 
 
 def visualize_circuit():
-    test_x, test_y = load_part_data(conf)
+    test_x, test_y = load_part_data(conf, num_data=conf.num_test)
     test_x, test_y = test_x[:1], test_y[:1]
     test_x = torch.flatten(test_x, start_dim=1)
 
@@ -27,8 +27,8 @@ def visualize_circuit():
 
 def analyse_qinfo(c_n='MW'):
     print(f'dataset: {conf.dataset}, model: {conf.structure}, class: {conf.class_idx}')
-    test_x, test_y = load_part_data(conf)
-    params = load_params_from_path(conf, device)
+    test_x, test_y = load_part_data(conf, num_data=conf.num_test)
+    params, _ = load_params_from_path(conf, device)
 
     if c_n == 'MW':
         in_list, out_list, chan_list = MW(test_x, params, conf)
@@ -51,5 +51,5 @@ def analyse_qinfo(c_n='MW'):
 
 
 
-analyse_qinfo(c_n='MW')
+analyse_qinfo(c_n='neg')
 # visualize_circuit()

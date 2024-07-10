@@ -2,9 +2,8 @@
 1 Quanv(kernel) + 2 fc
 4 qubits, single encoding: windows(2*2)->RY
 """
-
-
 import pennylane as qml
+from pennylane import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
@@ -45,11 +44,13 @@ def circuit_state(inputs, weights):
 
 
 @qml.qnode(dev, interface='torch')
-def circuit_prob(inputs, weights, depth_=depth):
+def circuit_prob(inputs, weights, depth_=depth, exp=False):
     for qub in range(n_qubits):
         qml.Hadamard(wires=qub)
         qml.RY(inputs[qub], wires=qub)
     pure_single_circuit(n_qubits, depth_, weights)
+    if exp:
+        return [qml.expval(qml.PauliZ(i)) for i in range(n_qubits)]
     return qml.probs(wires=l)
 
 
@@ -63,17 +64,17 @@ def circuit_dm(inputs, weights, q_idx, exec_=True):
     return qml.density_matrix(wires=q_idx)
 
 
-def feat_prob(x, weights):
+def feat_prob(x, weights, exp=False):
     if len(x.shape) == 2:
         x = x.unsqueeze(0)
     elif len(x.shape) == 1:
         x = x.reshape((1, 28, 28))
-    feat = torch.tensor([])
+    feat = []
     for i in range(0, x.shape[1]-1, 2):
         for j in range(0, x.shape[2]-1, 2):
-            f = circuit_prob(torch.flatten(x[:, i:i+2, j:j+2]), weights, depth)
-            feat = torch.cat((feat, f))
-    return feat
+            f = circuit_prob(torch.flatten(x[:, i:i + 2, j:j + 2]), weights, depth, exp=exp)
+            feat.append(f)
+    return torch.tensor(np.array(feat).flatten())
 
 
 class Quan2d(nn.Module):

@@ -95,12 +95,12 @@ def ent_state(psi):
 def entQ(in_state, out_state, k):
     ent_in = ent_state(in_state)
     ent_out = ent_state(out_state)
-    return ent_out - k*ent_in, ent_in, ent_out
+    return k*(ent_out - ent_in), ent_in, ent_out
 
 
 def entanglement_entropy(density_matrix, class_idx=[0, 1]):
     """
-    [0, log(n_qubits)] 越大纠缠越大
+    [0, log(n_qubits)]
     :param density_matrix: dm of all qubits
     :return:
     """
@@ -113,7 +113,7 @@ def entanglement_entropy(density_matrix, class_idx=[0, 1]):
     # rho = DensityMatrix(rho)
     # h_val = entropy(rho)
     # todo sub_sys如何选取
-    sub_sys = class_idx
+    sub_sys = [2]
     h_val = vn_entropy(density_matrix, indices=sub_sys, base=2)
     max_en = max_entropy(density_matrix, indices=sub_sys, base=2)
     return h_val / max_en
@@ -121,7 +121,7 @@ def entanglement_entropy(density_matrix, class_idx=[0, 1]):
 
 def avg_negativity(state_vector):
     """
-    [0, 1] 越大纠缠越大
+    [0, 1]
     :param state_vector
     :return: 
     """

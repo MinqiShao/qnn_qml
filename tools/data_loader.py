@@ -64,13 +64,12 @@ def filter_data(data_set, class_idx=[0, 1], scale=1.0):
     return idx
 
 
-def load_part_data(conf, train_=False):
+def load_part_data(conf, train_=False, num_data=100):
     name = conf.dataset
     dir = conf.data_dir
     resize = conf.resize
     class_idx = conf.class_idx
     # scale = conf.data_scale
-    num_test = conf.num_test_img
     if name == 'mnist':
         d_set = datasets.MNIST(dir, train=train_, download=True)
     elif name == 'fashion_mnist':
@@ -78,10 +77,10 @@ def load_part_data(conf, train_=False):
     elif name == 'emnist':
         d_set = datasets.EMNIST(dir, train=train_, download=True, split='digits')
 
-    scaled_idx = filter_data(d_set, class_idx, num_test)
+    scaled_idx = filter_data(d_set, class_idx, num_data)
     n = 'train' if train_ else 'test'
     print(f'load {name} {n} data for {len(class_idx)} classification, classes: {class_idx}, '
-          f'num data of each class: {num_test}')
+          f'num data of each class: {num_data}')
     if resize:
         d_set.data = feature_redc_test(d_set.data.clone().float() / 255.0, f_type=conf.reduction)
         print(f'feature reduction {conf.reduction} has completed')

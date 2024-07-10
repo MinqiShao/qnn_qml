@@ -67,37 +67,46 @@ def train_range_circuit(train_x, params):
 
 
 def train_range_kernel(train_x, params):
-    state_num_ = state_num * 14 * 14  # todo
+    state_num_ = state_num * 14 * 14
 
     save_path = os.path.join(conf.analysis_dir, conf.dataset, conf.structure)
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     save_path = os.path.join(save_path, 'range_' + str(conf.class_idx) + '.pth')
     min_list = torch.ones((state_num_, ))
-    max_list = torch.zeros((state_num_, ))
+    max_list = torch.full((state_num_, ), -1.0, dtype=torch.float32)
     for i, x in enumerate(train_x):
-        p = kernel_prob(x, conf, params)  # todo x的p部分相同 -- window内4个像素相同
+        if cir == 'prob':
+            p = kernel_prob(x, conf, params)
+        else:
+            p = kernel_exp(x, conf, params)
         for j, prob in enumerate(p):
             if prob <= min_list[j]:
                 min_list[j] = prob
             if prob >= max_list[j]:
                 max_list[j] = prob
-    print(f'example min: {min_list[:10]}, max: {max_list[:10]}')
-    dic = {'min_l': min_list, 'max_l': max_list, 'range_len': (max_list-min_list)/k}
+    # todo examine range range==0
+    range_l = (max_list-min_list)/k
+    r_exist_l = torch.ones((state_num_, ))
+    for i, r in enumerate(range_l):
+        if r == 0:
+            r_exist_l[i] = 0
+    dic = {'min_l': min_list, 'max_l': max_list, 'range_len': range_l, 'r_exist_l': r_exist_l}
     torch.save(dic, save_path)
+    print(f'example min: {min_list[:10]}, max: {max_list[:10]}, range_exist_num: {torch.sum(r_exist_l).item()}')
 
 
-def test_per_block(test_x, params):
+def test_per_block_bucket(test_x, params):
     """
     for QNN of pure circuit (composed of several blocks), i.e., QCL, QCNN, CCQC
-    compute coverage of test data on criteria obtained from train data
+    compute bucket coverage of test data
     :param test_x: sorted by class
     :param params:
     :return:
     """
     range_l = torch.load(os.path.join(conf.analysis_dir, conf.dataset, conf.structure, 'range_' + str(conf.class_idx) + '.pth'))
 
-    log('Compute coverage of testing data...')
+    log('Compute bucket coverage of testing data...')
     for d in block_dict[conf.structure]:
         bucket_list = torch.zeros((state_num, k), dtype=torch.int)
         feat_list = torch.zeros((test_x.shape[0], state_num))
@@ -105,6 +114,7 @@ def test_per_block(test_x, params):
         min_l, max_l, range_len = range_l[d-1]['min_l'], range_l[d-1]['max_l'], range_l[d-1]['range_len']
         for i, x in enumerate(test_x):
             x = torch.flatten(x, start_dim=0)
+            corner_num = 0
             if cir == 'prob':
                 p = block_prob(x, conf, params, d)  # (1024)
             else:
@@ -112,8 +122,10 @@ def test_per_block(test_x, params):
             # feat_list[i, :] = p
             for j, prob in enumerate(p):
                 if prob < min_l[j] or prob > max_l[j]:
+                    corner_num += 1
                     continue
                 bucket_list[j][int((prob-min_l[j]) // range_len[j])] = 1
+            print(f'{i+1}th sample\'s corner num: {corner_num}')
         covered_num = torch.sum(bucket_list).item()
         log(f'{d} block: {covered_num}/{state_num * k}={covered_num/(state_num*k)*100}%')
 
@@ -121,24 +133,69 @@ def test_per_block(test_x, params):
         # visual_feature_dis(feat_list, conf.num_test_img, 'block'+str(d))
 
 
-def test_kernel_feat(test_x, params):
+def test_block_corner(test_x, params):
+    """
+    corner coverage (neurons whose corner region is covered)
+    :param test_x:
+    :param params:
+    :return:
+    """
+    range_l = torch.load(
+        os.path.join(conf.analysis_dir, conf.dataset, conf.structure, 'range_' + str(conf.class_idx) + '.pth'))
+    log('Compute corner coverage of testing data...')
+    for d in block_dict[conf.structure]:
+        upper_cover = torch.zeros((state_num, ))
+        lower_cover = torch.zeros((state_num, ))
+
+        min_l, max_l = range_l[d - 1]['min_l'], range_l[d - 1]['max_l']
+        for i, x in enumerate(test_x):
+            x = torch.flatten(x, start_dim=0)
+            if cir == 'prob':
+                p = block_prob(x, conf, params, d)
+            else:
+                p = block_exp(x, conf, params, d)
+            for j, v in enumerate(p):
+                if v > max_l[j]:
+                    upper_cover[j] = 1
+                if v < min_l[j]:
+                    lower_cover[j] = 1
+        u, l = torch.sum(upper_cover).item(), torch.sum(lower_cover).item()
+        log(f'Block {d}: #upper cover: {u}, #lower cover: {l}, coverage: {(u+l)/(2*state_num)}')
+
+
+def test_block_topk(test_x, params, topk=1):
+    # todo 有多少个neuron曾经成为过某个样本的topk，k=1 2 3
+    log('Compute the topk coverage of testing data...')
+    for d in block_dict[conf.structure]:
+        top_l = torch.zeros((state_num, ))
+
+
+def test_kernel_buckect(test_x, params):
     """
     for QNN layer composed of circuit kernel, i.e., single/multi encoding
     :param test_x:
     :param params:
     :return:
     """
-    state_num_ = state_num * 14 * 14  # todo 对于circuit来说只有16个state，但卷积过程得到了14*14个结果，这里简单拼接
+    state_num_ = state_num * 14 * 14  # todo 对于circuit来说只有16个state，卷积过程得到了14*14个结果，这里简单拼接
     bucket_list = torch.zeros((state_num_, k), dtype=torch.int)
     feat_list = []
 
     range_l = torch.load(
         os.path.join(conf.analysis_dir, conf.dataset, conf.structure, 'range_' + str(conf.class_idx) + '.pth'))
-    min_l, max_l, range_len = range_l['min_l'], range_l['max_l'], range_l['range_len']
+    min_l, max_l, range_len, r_exist_l = range_l['min_l'], range_l['max_l'], range_l['range_len'], range_l['r_exist_l']
     for i, x in enumerate(test_x):
-        p = kernel_prob(x, conf, params)
+        if cir == 'prob':
+            p = kernel_prob(x, conf, params)
+        else:
+            p = kernel_exp(x, conf, params)
         feat_list.append(p)
         for j, f in enumerate(p):
+            if r_exist_l[j] == 0:
+                # todo cover single value
+                if f == min_l[j]:
+                    bucket_list[j][0] = 1
+                continue
             if f < min_l[j] or f > max_l[j]:
                 continue
             a = int((f-min_l[j]) // range_len[j])
@@ -146,7 +203,11 @@ def test_kernel_feat(test_x, params):
                 a -= 1  # f == max
             bucket_list[j][a] = 1
     covered_num = torch.sum(bucket_list).item()
-    print(f'coverage: {covered_num}/{state_num_ * k}={covered_num / (state_num_ * k) * 100}%')
+
+    r_e_num = torch.sum(r_exist_l).item()
+    t_state = (state_num_-r_e_num)*1 + r_e_num*k  # todo bucket总数
+    # t_state = r_e_num * k
+    print(f'coverage: {covered_num}/{t_state}={covered_num / t_state * 100}%')
 
     # print(f'visualize...')
     # visual_feature_dis(torch.stack(feat_list), conf.num_test_img, conf.structure + '_ql')
@@ -166,12 +227,12 @@ def gate_set_within_block():
 
 
 if __name__ == '__main__':
-    test_x, test_y = load_part_data(conf)
-    train_x, train_y = load_part_data(conf=conf, train_=True)
-    params = load_params_from_path(conf, device)
+    test_x, test_y = load_part_data(conf, num_data=conf.num_test)
+    train_x, train_y = load_part_data(conf=conf, train_=True, num_data=conf.num_train)
+    params, _ = load_params_from_path(conf, device)
 
     log(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-    log(f'Parameter: bucket num: {k}, cir: {conf.coverage_cri}, train/test num: {conf.num_test_img}')
+    log(f'Parameter: bucket num: {k}, cir: {conf.coverage_cri}, train num: {conf.num_train}, test num: {conf.num_test}')
     s_x1 = torch.tensor([])
     s_x2 = torch.tensor([])
     for y in conf.class_idx:
@@ -187,8 +248,9 @@ if __name__ == '__main__':
     if conf.structure in ['qcl', 'ccqc', 'pure_qcnn']:
         train_range_circuit(s_x1, params)
         log('Completed.')
-        test_per_block(s_x2, params)
+        # test_per_block_bucket(s_x2, params)
+        test_block_corner(s_x2, params)
     elif conf.structure in ['pure_single', 'pure_multi']:
         train_range_kernel(s_x1, params)
         log('Completed.')
-        test_kernel_feat(s_x2, params)
+        test_kernel_buckect(s_x2, params)

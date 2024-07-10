@@ -64,7 +64,7 @@ def load_params_from_path(conf, device):
             params.append(state_dict[weight_name[i]])
     else:
         params = state_dict[weight_name]
-    return params
+    return params, model
 
 
 def load_train_params(structure, state_dict):

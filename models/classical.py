@@ -10,7 +10,15 @@ class Classical(nn.Module):
         self.fc1 = nn.Linear(4*14*14, 32)
         self.fc2 = nn.Linear(32, num_classes)
 
-    def forward(self, x):
+    def forward(self, x, y):
+        preds = self.predict(x)
+        criterion = nn.CrossEntropyLoss()
+        loss = criterion(preds, y)
+        return loss
+
+    def predict(self, x):
+        if len(x.shape) == 3:
+            x = x.unsqueeze(1)
         x = self.conv(x)
         x = F.relu(x)
         x = x.view(x.shape[0], -1)

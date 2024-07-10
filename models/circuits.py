@@ -77,7 +77,8 @@ def pure_multi_circuit(n_qubits, depth, inputs, weights, exec_=True):
 
 
 ########## dict ##########
-weight_dict = {'qcl': 'ql.weights',
+weight_dict = {'classical': ['conv.weight', 'conv.bias', 'fc1.weight', 'fc1.bias', 'fc2.weight', 'fc2.bias'],
+               'qcl': 'ql.weights',
                'pure_qcnn': ['cir.weights_conv1', 'cir.weights_conv2', 'cir.weights_pool1', 'cir.weights_pool2', 'cir.weights_fc'],
                'ccqc': ['ql.weights', 'ql.weights_1', 'ql.weights_2'],
                'pure_single': 'qc.ql1.weights',

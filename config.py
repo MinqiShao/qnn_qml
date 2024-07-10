@@ -23,9 +23,14 @@ def get_arguments():
     parser.add_argument('--class_idx', nargs='+', type=int, default=[0, 1])
     parser.add_argument('--resize', action='store_true')
     parser.add_argument('--data_scale', type=float, default=1.0)
-    parser.add_argument('--num_test_img', type=int, default=10)
+    # analysis
     parser.add_argument('--criteria', type=str, default='prob', choices=['prob', 'ent'])
+    # coverage
+    parser.add_argument('--num_test', type=int, default=10)
+    parser.add_argument('--num_train', type=int, default=100)
     parser.add_argument('--coverage_cri', type=str, default='prob', choices=['prob', 'exp'])
+    # gen adv
+    parser.add_argument('--attack', type=str, default='DLFuzz', choices=['DLFuzz', 'FGSM', 'BIM', 'CW'])
     return parser.parse_args()
 
 

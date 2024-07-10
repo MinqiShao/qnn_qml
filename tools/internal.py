@@ -92,4 +92,8 @@ def kernel_prob(x, conf, params):
     return prob
 
 def kernel_exp(x, conf, params):
-    pass
+    if conf.structure == 'pure_single':
+        exp = single_encoding.feat_prob(x, params, exp=True)
+    elif conf.structure == 'pure_multi':
+        exp = multi_encoding.feat_prob(x, params, exp=True)
+    return exp

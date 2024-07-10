@@ -15,16 +15,16 @@ from tools.log import Log
 conf = get_arguments()
 device = torch.device('cpu')
 
-test_img_num = conf.num_test_img
+test_img_num = conf.num_test
 lr = 0.05
 anti_predict_weight = 1
-cov_weight = 1
+cov_weight = 5
 ent_k = 1
 
 
 def gen_adv():
-    test_x, test_y = load_part_data(conf)
-    params = load_params_from_path(conf, device)
+    test_x, test_y = load_part_data(conf, num_data=conf.num_test)
+    params, _ = load_params_from_path(conf, device)
 
     adv_num = 0
     f_list = []
