@@ -8,7 +8,7 @@ from config import *
 from tools.model_loader import load_params_from_path
 from tools.data_loader import load_part_data
 from tools import Log
-from tools.internal import block_prob, kernel_prob, block_exp, kernel_exp
+from tools.internal import block_out, kernel_out
 from tools.gragh import dot_graph
 from models.circuits import block_dict, qubit_dict
 import torch
@@ -23,8 +23,10 @@ k = 100  # bucket num
 cir = conf.coverage_cri
 if cir == 'prob':
     state_num = 2 ** n_qubits
+    exp = False
 else:
     state_num = n_qubits
+    exp = True
 
 log_dir = os.path.join(conf.analysis_dir, conf.dataset, conf.structure)
 if not os.path.exists(log_dir):
@@ -51,10 +53,7 @@ def train_range_circuit(train_x, params):
         log(f'Block {d}')
         for i, x in enumerate(train_x):
             x = torch.flatten(x, start_dim=0)
-            if cir == 'prob':
-                p = block_prob(x, conf, params, d)  # (1024)
-            else:
-                p = block_exp(x, conf, params, d)
+            p = block_out(x, conf, params, d, exp)
             for j, prob in enumerate(p):
                 if prob <= min_list[j]:
                     min_list[j] = prob
@@ -76,10 +75,7 @@ def train_range_kernel(train_x, params):
     min_list = torch.ones((state_num_, ))
     max_list = torch.full((state_num_, ), -1.0, dtype=torch.float32)
     for i, x in enumerate(train_x):
-        if cir == 'prob':
-            p = kernel_prob(x, conf, params)
-        else:
-            p = kernel_exp(x, conf, params)
+        p = kernel_out(x, conf, params, exp)
         for j, prob in enumerate(p):
             if prob <= min_list[j]:
                 min_list[j] = prob
@@ -115,10 +111,7 @@ def test_per_block_bucket(test_x, params):
         for i, x in enumerate(test_x):
             x = torch.flatten(x, start_dim=0)
             corner_num = 0
-            if cir == 'prob':
-                p = block_prob(x, conf, params, d)  # (1024)
-            else:
-                p = block_exp(x, conf, params, d)  # (n_qubits)
+            p = block_out(x, conf, params, d, exp)
             # feat_list[i, :] = p
             for j, prob in enumerate(p):
                 if prob < min_l[j] or prob > max_l[j]:
@@ -150,10 +143,7 @@ def test_block_corner(test_x, params):
         min_l, max_l = range_l[d - 1]['min_l'], range_l[d - 1]['max_l']
         for i, x in enumerate(test_x):
             x = torch.flatten(x, start_dim=0)
-            if cir == 'prob':
-                p = block_prob(x, conf, params, d)
-            else:
-                p = block_exp(x, conf, params, d)
+            p = block_out(x, conf, params, d, exp)
             for j, v in enumerate(p):
                 if v > max_l[j]:
                     upper_cover[j] = 1
@@ -164,10 +154,17 @@ def test_block_corner(test_x, params):
 
 
 def test_block_topk(test_x, params, topk=1):
-    # todo 有多少个neuron曾经成为过某个样本的topk，k=1 2 3
+    # 有多少个neuron曾经成为过某个样本的topk，k=1 2 3
     log('Compute the topk coverage of testing data...')
     for d in block_dict[conf.structure]:
         top_l = torch.zeros((state_num, ))
+
+        for i, x in enumerate(test_x):
+            x = torch.flatten(x, start_dim=0)
+            p = block_out(x, conf, params, d, exp)
+            topk_p = torch.topk(p, k=topk)[1]
+            top_l[topk_p] = 1
+        log(f'Block {d}: top {topk} coverage: {torch.sum(top_l).item() / state_num * 100}%')
 
 
 def test_kernel_buckect(test_x, params):
@@ -185,10 +182,7 @@ def test_kernel_buckect(test_x, params):
         os.path.join(conf.analysis_dir, conf.dataset, conf.structure, 'range_' + str(conf.class_idx) + '.pth'))
     min_l, max_l, range_len, r_exist_l = range_l['min_l'], range_l['max_l'], range_l['range_len'], range_l['r_exist_l']
     for i, x in enumerate(test_x):
-        if cir == 'prob':
-            p = kernel_prob(x, conf, params)
-        else:
-            p = kernel_exp(x, conf, params)
+        p = kernel_out(x, conf, params, exp)
         feat_list.append(p)
         for j, f in enumerate(p):
             if r_exist_l[j] == 0:
@@ -233,24 +227,15 @@ if __name__ == '__main__':
 
     log(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     log(f'Parameter: bucket num: {k}, cir: {conf.coverage_cri}, train num: {conf.num_train}, test num: {conf.num_test}')
-    s_x1 = torch.tensor([])
-    s_x2 = torch.tensor([])
-    for y in conf.class_idx:
-        idx = torch.where(train_y == y)[0]
-        x_ = train_x[idx]
-        s_x1 = torch.cat((s_x1, x_))
-
-        idx = torch.where(test_y == y)[0]
-        x_ = test_x[idx]
-        s_x2 = torch.cat((s_x2, x_))
 
     log('Getting range info from training data...')
     if conf.structure in ['qcl', 'ccqc', 'pure_qcnn']:
-        train_range_circuit(s_x1, params)
+        # train_range_circuit(train_x, params)
         log('Completed.')
         # test_per_block_bucket(s_x2, params)
-        test_block_corner(s_x2, params)
+        # test_block_corner(s_x2, params)
+        test_block_topk(test_x, params)
     elif conf.structure in ['pure_single', 'pure_multi']:
-        train_range_kernel(s_x1, params)
+        train_range_kernel(train_x, params)
         log('Completed.')
-        test_kernel_buckect(s_x2, params)
+        test_kernel_buckect(test_x, params)

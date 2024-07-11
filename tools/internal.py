@@ -62,38 +62,27 @@ def circuit_state(in_state, conf, params):
     return out_state
 
 
-def block_prob(x, conf, params, depth=1):
+def block_out(x, conf, params, depth=1, exp=False):
     # 单个样本
     if conf.structure == 'qcl':
-        prob = QCL.circuit_prob(x, params, depth_=depth)
+        prob = QCL.circuit_prob(x, params, depth_=depth, exp=exp)
     elif conf.structure == 'pure_qcnn':
-        prob = QCNN_pure.circuit_prob(x, params[0], params[1], params[2], params[3], params[4], depth=depth)
+        prob = QCNN_pure.circuit_prob(x, params[0], params[1], params[2], params[3], params[4], depth=depth, exp=exp)
     elif conf.structure == 'ccqc':
-        prob = CCQC.circuit_prob(x, params[0], params[1], params[2], depth_=depth)
+        prob = CCQC.circuit_prob(x, params[0], params[1], params[2], depth_=depth, exp=exp)
 
+    if exp:
+        return torch.tensor(prob)
     return prob
 
-def block_exp(x, conf, params, depth=1):
-    if conf.structure == 'qcl':
-        exp = QCL.circuit_prob(x, params, depth_=depth, exp=True)
-    elif conf.structure == 'pure_qcnn':
-        exp = QCNN_pure.circuit_prob(x, params[0], params[1], params[2], params[3], params[4], depth=depth, exp=True)
-    elif conf.structure == 'ccqc':
-        exp = CCQC.circuit_prob(x, params[0], params[1], params[2], depth_=depth, exp=True)
 
-    return exp
-
-def kernel_prob(x, conf, params):
+def kernel_out(x, conf, params, exp=False):
     if conf.structure == 'pure_single':
-        prob = single_encoding.feat_prob(x, params)
+        prob = single_encoding.feat_prob(x, params, exp=exp)
     elif conf.structure == 'pure_multi':
-        prob = multi_encoding.feat_prob(x, params)
+        prob = multi_encoding.feat_prob(x, params, exp=exp)
 
+    if exp:
+        return torch.tensor(prob)
     return prob
 
-def kernel_exp(x, conf, params):
-    if conf.structure == 'pure_single':
-        exp = single_encoding.feat_prob(x, params, exp=True)
-    elif conf.structure == 'pure_multi':
-        exp = multi_encoding.feat_prob(x, params, exp=True)
-    return exp

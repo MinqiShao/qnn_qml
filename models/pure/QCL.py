@@ -3,6 +3,7 @@ qml implementation for QCL
 """
 
 import pennylane as qml
+from pennylane import numpy as np
 import torch
 import torch.nn as nn
 from pennylane import AmplitudeEmbedding
