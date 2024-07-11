@@ -51,7 +51,7 @@ def BIM(model, imgs, labels, eps=8/255, alpha=2/255, steps=10):
     distance measure: Linf
     :param model:
     :param img:
-    :param label:
+    :param label: 步长
     :param eps: adv与ori img之间的变化范围
     :param steps:
     :return:
@@ -60,9 +60,11 @@ def BIM(model, imgs, labels, eps=8/255, alpha=2/255, steps=10):
     for _ in range(steps):
         imgs.requires_grad = True
         loss = model(imgs, labels)
-        grad = torch.autograd.grad(
-            loss, imgs, retain_graph=False, create_graph=False
-        )[0]
+        loss.backward()
+        # grad = torch.autograd.grad(
+        #     loss, imgs, retain_graph=False, create_graph=False
+        # )[0]
+        grad = imgs.grad
         adv_imgs = imgs + alpha*grad.sign()
         a = torch.clamp(ori_imgs - eps, min=0)  # 每个像素位的最低值，变化的下限
         b = (adv_imgs >= a).float() * adv_imgs + (adv_imgs < a).float() * a

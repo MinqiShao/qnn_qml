@@ -18,7 +18,7 @@ device = torch.device('cpu')
 test_img_num = conf.num_test
 lr = 0.05
 anti_predict_weight = 1
-cov_weight = 5
+cov_weight = 1
 ent_k = 1
 
 
@@ -88,7 +88,7 @@ def gen_adv():
                 t_sum += t
                 QEA_sum += now_ent_out - now_ent_in
                 adv_img = x.reshape(1, 28, 28)
-                save_image(adv_img, os.path.join(p, 'adv_class_' + str(test_y[i].item()) + str(i) + '.png'))
+                save_image(adv_img, os.path.join(p,   str(i) + '_' + str(test_y[i].item()) + '_' + str(new_y.item()) + '.png'))
                 break
 
             if iters == 500:
