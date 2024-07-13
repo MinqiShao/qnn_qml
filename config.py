@@ -28,7 +28,8 @@ def get_arguments():
     # coverage
     parser.add_argument('--num_test', type=int, default=10)
     parser.add_argument('--num_train', type=int, default=100)
-    parser.add_argument('--coverage_cri', type=str, default='prob', choices=['prob', 'exp'])
+    parser.add_argument('--cov_cri', type=str, default='prob', choices=['prob', 'exp'])
+    parser.add_argument('--with_adv', action='store_true')
     # gen adv
     parser.add_argument('--attack', type=str, default='DLFuzz', choices=['DLFuzz', 'FGSM', 'BIM', 'CW', 'QuanTest'])
     return parser.parse_args()

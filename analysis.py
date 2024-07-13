@@ -4,7 +4,7 @@ import torch
 from torchvision import transforms
 from PIL import Image
 from tools.model_loader import load_params_from_path
-from tools.data_loader import load_part_data
+from tools.data_loader import load_part_data, load_adv_imgs
 from config import *
 from tools.entanglement import *
 
@@ -50,36 +50,81 @@ def analyse_qinfo(c_n='MW'):
     # log('Input state: mean: {}, min: {}, max: {}'.format(torch.mean(in_list), torch.min(in_list), torch.max(in_list)))
     # log('Output state: mean: {}, min: {}, max: {}'.format(torch.mean(out_list), torch.min(out_list), torch.max(out_list)))
     # log('Change between in and out: mean: {}, min: {}, max: {}'.format(torch.mean(chan_list), torch.min(chan_list), torch.max(chan_list)))
-    log('Input state: {}'.format(in_list))
-    log('Output state: {}'.format(out_list))
+    log('Input state: {}'.format(in_list.tolist()))
+    log('Output state: {}'.format(out_list.tolist()))
 
 
-def adv_qinfo():
-    print(f'dataset: {conf.dataset}, model: {conf.structure}, class: {conf.class_idx}, attack: {conf.attack}')
-    if conf.attack == 'QuanTest':
-        p = os.path.join(conf.analysis_dir, 'QuanTest', conf.dataset, conf.structure, str(conf.class_idx))
-    else:
-        p = os.path.join(conf.analysis_dir, 'AdvAttack', conf.dataset, 'qcl', str(conf.class_idx), conf.attack)
-
+def compare_adv():
+    print('Compare entanglement between original, classical adv and QuanTest samples')
+    print(f'dataset: {conf.dataset}, model: {conf.structure}, class: {conf.class_idx}, classical adv: {conf.attack}')
+    # qcl
+    params, model = load_params_from_path(conf, device)
+    # classical adv data
+    p = os.path.join(conf.analysis_dir, 'AdvAttack', conf.dataset, 'classical', str(conf.class_idx), conf.attack)
+    idx_list = []
     img_list = []
     transform = transforms.Compose([transforms.ToTensor()])
     for file in os.listdir(p):
         if file.endswith('.png'):
-            print(file)
+            idx = int(file.split('_')[0])
+            idx_list.append(idx)  # img idx
             img_p = os.path.join(p, file)
             img = Image.open(img_p).convert('L')
             img = transform(img)
-            img_list.append(img.unsqueeze(0))
+            img_list.append(img)
+    idx_list = torch.tensor(idx_list)
 
-    # qcl
-    params, model = load_params_from_path(conf, device)
-    in_list, out_list, chan_list = MW(img_list, params, conf)
+    # original data
+    test_x, test_y = load_part_data(conf, num_data=conf.num_test)
 
-    for i, a in enumerate(img_list):
-        print(f'-------{i}th img--------')
-        print(f'pred label: {model.predict(a).detach().numpy().argmax(axis=1).tolist()}')
-        print('in: {}, out: {}'.format(in_list[i], out_list[i]))
+    # QuanTest imgs
+    p = os.path.join(conf.analysis_dir, 'QuanTest', conf.dataset, conf.structure, str(conf.class_idx))
+    quan_list = []
+    quan_idx_list = []
+    transform = transforms.Compose([transforms.ToTensor()])
+    for file in os.listdir(p):
+        if file.endswith('.png'):
+            idx = int(file.split('_')[0])
+            quan_idx_list.append(idx)  # img idx
+            img_p = os.path.join(p, file)
+            img = Image.open(img_p).convert('L')
+            img = transform(img)
+            quan_list.append(img)
+    quan_idx_list = torch.tensor(quan_idx_list)
 
-analyse_qinfo(c_n='MW')
+    common_idx = []
+    ori_img = []
+    c_img = []
+    q_img = []
+    for i, idx in enumerate(idx_list):
+        a = torch.where(quan_idx_list == idx)[0]
+        if a.shape[0] == 0:
+            continue
+        common_idx.append(idx)
+        ori_img.append(test_x[idx])
+        c_img.append(img_list[i])
+        q_img.append(quan_list[a])
+
+    # for all imgs in img_list (they success attack classical)
+    in_o, out_o, chan_o = MW(ori_img, params, conf)
+    in_c, out_c, chan_c = MW(c_img, params, conf)
+    in_q, out_q, chan_q = MW(q_img, params, conf)
+    for i in range(len(common_idx)):
+        print(f'---{common_idx[i]} img---')
+        print(f'ori in: {in_o[i]}, adv in: {in_c[i]}, QuanTest: {in_q[i]}')
+        print(f'ori out: {out_o[i]}, adv out: {out_c[i]}, QuanTest: {out_q[i]}')
+
+    # for imgs that attack classical and qnn successfully
+    now_y_q = model.predict(torch.stack(c_img)).detach().argmax(axis=1)
+    q = torch.where(test_y[torch.tensor(common_idx)] != now_y_q)[0]
+    print(f'{q.shape[0]} adv imgs attacking qnn successfully')
+    for i in q:
+        print(f'---{common_idx[i]} img---')
+        print(f'ori in: {in_o[i]}, adv in: {in_c[i]}, QuanTest: {in_q[i]}')
+        print(f'ori out: {out_o[i]}, adv out: {out_c[i]}, QuanTest: {out_q[i]}')
+
+
+
+# analyse_qinfo(c_n='MW')
 # visualize_circuit()
-adv_qinfo()
+compare_adv()

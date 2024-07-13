@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 from config import *
 from tools.model_loader import load_params_from_path
-from tools.data_loader import load_part_data
+from tools.data_loader import load_part_data, load_adv_imgs
 from tools import Log
 from tools.internal import block_out, kernel_out
 from tools.gragh import dot_graph
@@ -20,7 +20,7 @@ device = torch.device('cpu')
 
 n_qubits = qubit_dict[conf.structure]
 k = 100  # bucket num
-cir = conf.coverage_cri
+cir = conf.cov_cri
 if cir == 'prob':
     state_num = 2 ** n_qubits
     exp = False
@@ -43,12 +43,11 @@ def train_range_circuit(train_x, params):
     :return: save min/max of each state of each block [{'min_l': [state_num], 'max_l': [state_num]}, ...]
     """
     results = []
-    save_path = os.path.join(log_dir, 'range_' + str(conf.class_idx) + '.pth')
+    save_path = os.path.join(log_dir, cir + '_range_' + str(conf.class_idx) + '.pth')
 
     for d in block_dict[conf.structure]:
         min_list = torch.ones((state_num, ))  # min/max prob for each state
         max_list = torch.zeros((state_num, ))
-        # covered = torch.zeros((state_num, k))  # for topk
 
         log(f'Block {d}')
         for i, x in enumerate(train_x):
@@ -100,7 +99,7 @@ def test_per_block_bucket(test_x, params):
     :param params:
     :return:
     """
-    range_l = torch.load(os.path.join(conf.analysis_dir, conf.dataset, conf.structure, 'range_' + str(conf.class_idx) + '.pth'))
+    range_l = torch.load(os.path.join(conf.analysis_dir, conf.dataset, conf.structure, cir + '_range_' + str(conf.class_idx) + '.pth'))
 
     log('Compute bucket coverage of testing data...')
     for d in block_dict[conf.structure]:
@@ -110,15 +109,12 @@ def test_per_block_bucket(test_x, params):
         min_l, max_l, range_len = range_l[d-1]['min_l'], range_l[d-1]['max_l'], range_l[d-1]['range_len']
         for i, x in enumerate(test_x):
             x = torch.flatten(x, start_dim=0)
-            corner_num = 0
             p = block_out(x, conf, params, d, exp)
             # feat_list[i, :] = p
             for j, prob in enumerate(p):
                 if prob < min_l[j] or prob > max_l[j]:
-                    corner_num += 1
                     continue
                 bucket_list[j][int((prob-min_l[j]) // range_len[j])] = 1
-            print(f'{i+1}th sample\'s corner num: {corner_num}')
         covered_num = torch.sum(bucket_list).item()
         log(f'{d} block: {covered_num}/{state_num * k}={covered_num/(state_num*k)*100}%')
 
@@ -133,8 +129,7 @@ def test_block_corner(test_x, params):
     :param params:
     :return:
     """
-    range_l = torch.load(
-        os.path.join(conf.analysis_dir, conf.dataset, conf.structure, 'range_' + str(conf.class_idx) + '.pth'))
+    range_l = torch.load(os.path.join(conf.analysis_dir, conf.dataset, conf.structure, cir + '_range_' + str(conf.class_idx) + '.pth'))
     log('Compute corner coverage of testing data...')
     for d in block_dict[conf.structure]:
         upper_cover = torch.zeros((state_num, ))
@@ -150,7 +145,7 @@ def test_block_corner(test_x, params):
                 if v < min_l[j]:
                     lower_cover[j] = 1
         u, l = torch.sum(upper_cover).item(), torch.sum(lower_cover).item()
-        log(f'Block {d}: #upper cover: {u}, #lower cover: {l}, coverage: {(u+l)/(2*state_num)}')
+        log(f'Block {d}: #upper cover: {u}, #lower cover: {l}, coverage: {(u+l)/(2*state_num)*100}%')
 
 
 def test_block_topk(test_x, params, topk=1):
@@ -221,19 +216,25 @@ def gate_set_within_block():
 
 
 if __name__ == '__main__':
-    test_x, test_y = load_part_data(conf, num_data=conf.num_test)
     train_x, train_y = load_part_data(conf=conf, train_=True, num_data=conf.num_train)
+    test_x, test_y = load_part_data(conf, num_data=conf.num_test)
+
+    if conf.with_adv:
+        _, adv_imgs = load_adv_imgs(conf, log)
+        adv_imgs = adv_imgs.squeeze(1)
+        test_x = torch.cat((test_x, adv_imgs), dim=0)
+
     params, _ = load_params_from_path(conf, device)
 
     log(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-    log(f'Parameter: bucket num: {k}, cir: {conf.coverage_cri}, train num: {conf.num_train}, test num: {conf.num_test}')
+    log(f'Parameter: bucket num: {k}, cir: {conf.cov_cri}, train num: {train_x.shape[0]}, test num: {test_x.shape[0]}')
 
     log('Getting range info from training data...')
     if conf.structure in ['qcl', 'ccqc', 'pure_qcnn']:
-        # train_range_circuit(train_x, params)
+        train_range_circuit(train_x, params)
         log('Completed.')
-        # test_per_block_bucket(s_x2, params)
-        # test_block_corner(s_x2, params)
+        test_per_block_bucket(test_x, params)
+        test_block_corner(test_x, params)
         test_block_topk(test_x, params)
     elif conf.structure in ['pure_single', 'pure_multi']:
         train_range_kernel(train_x, params)

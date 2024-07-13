@@ -40,7 +40,7 @@ def gen_adv():
     log = Log(p_)
 
     for i in range(test_x.shape[0]):
-        log(f'Start for {i+1}th img...')
+        log(f'Start for {i}th img...')
         x = torch.flatten(test_x[i], start_dim=0)
         x.requires_grad_(True)
 
@@ -52,9 +52,14 @@ def gen_adv():
         iters = 0
         while True:
             iters += 1
+            x.requires_grad_(True)
+
+            now_in_state, now_out_state = in_out_state(x, conf.structure, params)
+            now_ent_c, now_ent_in, now_ent_out = entQ(now_in_state, now_out_state, ent_k)
+            log(f'iter {iters}: QEA: {now_ent_c}, ent_in: {now_ent_in}, ent_out: {now_ent_out}')
 
             now_outputs, _ = circuit_pred(x, params, conf)  # list
-            now_out_state = circuit_state(x, conf, params)  # tensor
+            # now_out_state = circuit_state(x, conf, params)  # tensor
             now_ent_c, _, _ = entQ(now_in_state, now_out_state, ent_k)
             if len(conf.class_idx) == 2:
                 obj_orie = DLFuzz2(now_outputs, ori_outputs, anti_predict_weight)
@@ -62,16 +67,10 @@ def gen_adv():
                 obj_orie = DLFuzz3(now_outputs, ori_outputs, anti_predict_weight)
 
             loss = obj_orie + cov_weight * now_ent_c
-            x.retain_grad()
-            loss.backward(retain_graph=True)
+            loss.backward()
             perturb = x.grad * lr
 
-            x = torch.clamp((x+perturb), 0, 1)
-            # now_in_state = now_in_state / torch.linalg.norm(torch.abs(now_in_state))
-
-            now_in_state, now_out_state = in_out_state(x, conf.structure, params)
-            now_ent_c, now_ent_in, now_ent_out = entQ(now_in_state, now_out_state, ent_k)
-            log(f'iter {iters}: QEA: {now_ent_c}, ent_in: {now_ent_in}, ent_out: {now_ent_out}')
+            x = torch.clamp((x+perturb), 0, 1).detach()
 
             _, new_y = circuit_pred(x, params, conf)
             if new_y != test_y[i]:

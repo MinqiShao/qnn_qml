@@ -1,3 +1,4 @@
+import os
 import torch
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
@@ -90,3 +91,23 @@ def load_part_data(conf, train_=False, num_data=100):
     d_set.targets = transform_labels(d_set.targets.clone(), class_idx)
 
     return d_set.data[scaled_idx], d_set.targets[scaled_idx]
+
+
+def load_adv_imgs(conf, log):
+    if conf.attack == 'QuanTest':
+        p = os.path.join(conf.analysis_dir, 'QuanTest', conf.dataset, conf.structure, str(conf.class_idx))
+    else:
+        p = os.path.join(conf.analysis_dir, 'AdvAttack', conf.dataset, conf.structure, str(conf.class_idx), conf.attack)
+    idx_list = []
+    img_list = []
+    transform = transforms.Compose([transforms.ToTensor()])
+    for file in os.listdir(p):
+        if file.endswith('.png'):
+            idx = int(file.split('_')[0])
+            idx_list.append(idx)  # img idx
+            img_p = os.path.join(p, file)
+            img = Image.open(img_p).convert('L')
+            img = transform(img)
+            img_list.append(img)
+    log(f'load {len(img_list)} adv images from {p}')
+    return torch.tensor(idx_list), torch.stack(img_list)
