@@ -28,10 +28,15 @@ def circuit(inputs, weights_conv1, weights_conv2, weights_pool1, weights_pool2, 
 
 
 @qml.qnode(dev, interface='torch')
-def circuit_state(inputs, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc, exec_=True):
+def circuit_state(inputs, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc, exec_=True, depth_=0):
     AmplitudeEmbedding(inputs, wires=range(n_qubits), normalize=True, pad_with=0)
     if exec_:
-        pure_qcnn_circuit(n_qubits, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc)
+        if depth_ == 0:
+            pure_qcnn_block1(n_qubits, weights_conv1, weights_pool1)
+        elif depth_ == 1:
+            pure_qcnn_block2(n_qubits, weights_conv1, weights_conv2, weights_pool1, weights_pool2)
+        elif depth_ == 2:
+            pure_qcnn_circuit(n_qubits, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc)
     return qml.state()
 
 

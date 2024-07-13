@@ -29,10 +29,10 @@ def circuit(inputs, weights):
 
 @qml.qnode(dev, interface='torch')
 # @qml.qnode(dev, diff_method="backprop")
-def circuit_state(inputs, weights, exec_=True):
+def circuit_state(inputs, weights, depth_=depth, exec_=True):
     AmplitudeEmbedding(inputs, wires=range(n_qubits), normalize=True, pad_with=0)
     if exec_:
-        QCL_circuit(depth, n_qubits, weights)
+        QCL_circuit(depth_, n_qubits, weights)
 
     return qml.state()
 

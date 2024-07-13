@@ -9,12 +9,12 @@ from qiskit.quantum_info import DensityMatrix, negativity, Statevector
 from pennylane.math import vn_entropy, max_entropy
 from tools.internal import *
 
-def MW(test_x, params, conf):
+def MW(test_x, params, conf, depth=1):
     in_list = []
     out_list = []
     for x in tqdm(test_x):
         x = torch.flatten(x, start_dim=0)
-        in_state, out_state = in_out_state(x, conf.structure, params)
+        in_state, out_state = in_out_state(x, conf.structure, params, depth)
         _, ent_in, ent_out = entQ(in_state, out_state, 1)
         in_list.append(ent_in)
         out_list.append(ent_out)

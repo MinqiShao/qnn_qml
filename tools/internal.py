@@ -4,16 +4,16 @@ import pennylane as qml
 from pennylane import numpy as np
 
 ##### obtain state, density matrix
-def in_out_state(x, structure, params):
+def in_out_state(x, structure, params, depth=1):
     if structure == 'qcl':
-        in_state = QCL.circuit_state(x, params, exec_=False)
-        out_state = QCL.circuit_state(x, params)
+        in_state = QCL.circuit_state(x, params, exec_=False, depth_=depth)
+        out_state = QCL.circuit_state(x, params, depth_=depth)
     elif structure == 'pure_qcnn':
-        in_state = QCNN_pure.circuit_state(x, params[0], params[1], params[2], params[3], params[4], exec_=False)
-        out_state = QCNN_pure.circuit_state(x, params[0], params[1], params[2], params[3], params[4])
+        in_state = QCNN_pure.circuit_state(x, params[0], params[1], params[2], params[3], params[4], exec_=False, depth_=depth)
+        out_state = QCNN_pure.circuit_state(x, params[0], params[1], params[2], params[3], params[4], depth_=depth)
     elif structure == 'ccqc':
-        in_state = CCQC.circuit_state(x, params[0], params[1], params[2], exec_=False)
-        out_state = CCQC.circuit_state(x, params[0], params[1], params[2])
+        in_state = CCQC.circuit_state(x, params[0], params[1], params[2], exec_=False, depth_=depth)
+        out_state = CCQC.circuit_state(x, params[0], params[1], params[2], depth_=depth)
     return in_state, out_state
 
 

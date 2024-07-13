@@ -5,6 +5,7 @@ from torchvision import transforms
 from PIL import Image
 from tools.model_loader import load_params_from_path
 from tools.data_loader import load_part_data, load_adv_imgs
+from models.circuits import depth_dict
 from config import *
 from tools.entanglement import *
 
@@ -31,9 +32,10 @@ def analyse_qinfo(c_n='MW'):
     print(f'dataset: {conf.dataset}, model: {conf.structure}, class: {conf.class_idx}')
     test_x, test_y = load_part_data(conf, num_data=conf.num_test)
     params, _ = load_params_from_path(conf, device)
+    d = depth_dict[conf.structure]
 
     if c_n == 'MW':
-        in_list, out_list, chan_list = MW(test_x, params, conf)
+        in_list, out_list, chan_list = MW(test_x, params, conf, d)
     elif c_n == 'entropy':
         in_list, out_list, chan_list = entropy(test_x, params, conf)
     elif c_n == 'neg':
@@ -56,7 +58,7 @@ def analyse_qinfo(c_n='MW'):
 
 def compare_adv():
     print('Compare entanglement between original, classical adv and QuanTest samples')
-    print(f'dataset: {conf.dataset}, model: {conf.structure}, class: {conf.class_idx}, classical adv: {conf.attack}')
+    print(f'dataset: {conf.dataset}, model: {conf.structure}, class: {conf.class_idx}, adv: {conf.attack}')
     # qcl
     params, model = load_params_from_path(conf, device)
     # classical adv data
@@ -106,9 +108,10 @@ def compare_adv():
         q_img.append(quan_list[a])
 
     # for all imgs in img_list (they success attack classical)
-    in_o, out_o, chan_o = MW(ori_img, params, conf)
-    in_c, out_c, chan_c = MW(c_img, params, conf)
-    in_q, out_q, chan_q = MW(q_img, params, conf)
+    d = depth_dict[conf.structure]
+    in_o, out_o, chan_o = MW(ori_img, params, conf, d)
+    in_c, out_c, chan_c = MW(c_img, params, conf, d)
+    in_q, out_q, chan_q = MW(q_img, params, conf, d)
     for i in range(len(common_idx)):
         print(f'---{common_idx[i]} img---')
         print(f'ori in: {in_o[i]}, adv in: {in_c[i]}, QuanTest: {in_q[i]}')

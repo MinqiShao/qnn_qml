@@ -10,6 +10,7 @@ from tools.data_loader import load_part_data, load_adv_imgs
 from tools import Log
 from tools.internal import block_out, kernel_out
 from tools.gragh import dot_graph
+from tools.entanglement import MW
 from models.circuits import block_dict, qubit_dict
 import torch
 import os
@@ -60,6 +61,33 @@ def train_range_circuit(train_x, params):
                     max_list[j] = prob
         log(f'example min: {min_list[:10]}, max: {max_list[:10]}')
         dic = {'min_l': min_list, 'max_l': max_list, 'range_len': (max_list-min_list)/k}
+        results.append(dic)
+    torch.save(results, save_path)
+
+
+def train_ent_circuit(train_x, params):
+    """
+    out entanglement range from train data
+    :param train_x:
+    :param params:
+    :return:
+    """
+    results = []
+    save_path = os.path.join(log_dir, cir + '_range_' + str(conf.class_idx) + '.pth')
+
+    for d in block_dict[conf.structure]:
+        min = 1
+        max = 0
+        log(f'Block {d}')
+        _, out_list, _ = MW(train_x, params, conf, d)
+        i = torch.min(out_list)
+        if i < min:
+            min = i
+        i = torch.max(out_list)
+        if i > max:
+            max = i
+        log(f'min: {min}, max: {max}')
+        dic = {'min': min, 'max': max, 'range_len': (max-min)/k}
         results.append(dic)
     torch.save(results, save_path)
 
@@ -162,7 +190,27 @@ def test_block_topk(test_x, params, topk=1):
         log(f'Block {d}: top {topk} coverage: {torch.sum(top_l).item() / state_num * 100}%')
 
 
-def test_kernel_buckect(test_x, params):
+def test_block_ent(test_x, params):
+    range_l = torch.load(
+        os.path.join(conf.analysis_dir, conf.dataset, conf.structure, cir + '_range_' + str(conf.class_idx) + '.pth'))
+    log('Compute the entanglement coverage of testing data...')
+    for d in block_dict[conf.structure]:
+        bucket_list = torch.zeros((k, ), dtype=torch.int)
+        min_e, max_e, r_l = range_l[d - 1]['min'], range_l[d - 1]['max'], range_l[d - 1]['range_len']
+        _, ent_l, _ = MW(test_x, params, conf, d)  # test_x.shape[0]
+        upper_num, lower_num = 0, 0
+        for e in ent_l:
+            if e < min_e:
+                lower_num += 1
+                continue
+            if e > max_e:
+                upper_num += 1
+                continue
+            bucket_list[int((e - min_e) // r_l)] = 1
+        log(f'Block {d}: out entanglement coverage: {torch.sum(bucket_list).item()/k * 100}%, upper: {upper_num}/{test_x.shape[0]}, lower: {lower_num}/{test_x.shape[0]}')
+
+
+def test_kernel_bucket(test_x, params):
     """
     for QNN layer composed of circuit kernel, i.e., single/multi encoding
     :param test_x:
@@ -231,12 +279,16 @@ if __name__ == '__main__':
 
     log('Getting range info from training data...')
     if conf.structure in ['qcl', 'ccqc', 'pure_qcnn']:
-        train_range_circuit(train_x, params)
-        log('Completed.')
-        test_per_block_bucket(test_x, params)
-        test_block_corner(test_x, params)
-        test_block_topk(test_x, params)
+        if conf.cov_cri == 'ent':
+            train_ent_circuit(train_x, params)
+            test_block_ent(test_x, params)
+        else:
+            train_range_circuit(train_x, params)
+            log('Completed.')
+            test_per_block_bucket(test_x, params)
+            test_block_corner(test_x, params)
+            test_block_topk(test_x, params)
     elif conf.structure in ['pure_single', 'pure_multi']:
         train_range_kernel(train_x, params)
         log('Completed.')
-        test_kernel_buckect(test_x, params)
+        test_kernel_bucket(test_x, params)
