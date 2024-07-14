@@ -280,7 +280,7 @@ if __name__ == '__main__':
     log('Getting range info from training data...')
     if conf.structure in ['qcl', 'ccqc', 'pure_qcnn']:
         if conf.cov_cri == 'ent':
-            train_ent_circuit(train_x, params)
+            #train_ent_circuit(train_x, params)
             test_block_ent(test_x, params)
         else:
             train_range_circuit(train_x, params)

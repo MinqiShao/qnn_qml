@@ -28,6 +28,14 @@ def gen_adv():
         adv_imgs = FGSM(model, test_x, test_y, eps=64/255)
     elif conf.attack == 'BIM':
         adv_imgs = BIM(model, test_x, test_y, eps=64/255, alpha=4/255, steps=100)
+    elif conf.attack == 'DLFuzz':
+        adv_imgs = DLFuzz(model, test_x, test_y, w=5, steps=500)
+    elif conf.attack == 'CW':
+        adv_imgs = CW(model, test_x, test_y, c=10, steps=500)
+    elif conf.attack == 'DIFGSM':
+        adv_imgs = DIFGSM(model, test_x, test_y, eps=32/255, alpha=4/255, steps=100)
+    elif conf.attack == 'JSMA':
+        adv_imgs = JSMA(model, test_x, test_y, num_class=len(conf.class_idx))
 
     now_y = model.predict(adv_imgs).detach().numpy().argmax(axis=1).tolist()
     now_acc = accuracy_score(test_y.numpy().tolist(), now_y)

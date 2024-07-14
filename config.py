@@ -31,7 +31,7 @@ def get_arguments():
     parser.add_argument('--cov_cri', type=str, default='prob', choices=['prob', 'exp', 'ent'])
     parser.add_argument('--with_adv', action='store_true')
     # gen adv
-    parser.add_argument('--attack', type=str, default='DLFuzz', choices=['DLFuzz', 'FGSM', 'BIM', 'CW', 'QuanTest'])
+    parser.add_argument('--attack', type=str, default='DLFuzz', choices=['DLFuzz', 'FGSM', 'BIM', 'CW', 'QuanTest', 'DIFGSM', 'JSMA'])
     return parser.parse_args()
 
 

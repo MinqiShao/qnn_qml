@@ -62,7 +62,7 @@ def compare_adv():
     # qcl
     params, model = load_params_from_path(conf, device)
     # classical adv data
-    p = os.path.join(conf.analysis_dir, 'AdvAttack', conf.dataset, 'classical', str(conf.class_idx), conf.attack)
+    p = os.path.join(conf.analysis_dir, 'AdvAttack', conf.dataset, conf.structure, str(conf.class_idx), conf.attack)
     idx_list = []
     img_list = []
     transform = transforms.Compose([transforms.ToTensor()])
@@ -120,11 +120,12 @@ def compare_adv():
     # for imgs that attack classical and qnn successfully
     now_y_q = model.predict(torch.stack(c_img)).detach().argmax(axis=1)
     q = torch.where(test_y[torch.tensor(common_idx)] != now_y_q)[0]
-    print(f'{q.shape[0]} adv imgs attacking qnn successfully')
+    print(f'{q.shape[0]}/{len(common_idx)} adv imgs attacking qnn successfully')
     for i in q:
         print(f'---{common_idx[i]} img---')
         print(f'ori in: {in_o[i]}, adv in: {in_c[i]}, QuanTest: {in_q[i]}')
         print(f'ori out: {out_o[i]}, adv out: {out_c[i]}, QuanTest: {out_q[i]}')
+        print(f'ori chan: {chan_o[i]}, adv chan: {chan_c[i]}, QuanTest: {chan_q[i]}')
 
 
 
