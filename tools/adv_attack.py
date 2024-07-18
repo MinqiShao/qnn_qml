@@ -2,6 +2,7 @@ import numpy as np
 import torch
 from torch import optim
 import torch.nn.functional as F
+from tqdm import tqdm
 
 
 def DLFuzz2(now_outputs, ori_outputs, w):
@@ -31,7 +32,7 @@ def DLFuzz3(now_outputs, ori_outputs, w):
 
 def DLFuzz(model, imgs, labels, w=1, steps=500):
     imgs = imgs.clone()
-    for i in range(steps):
+    for i in tqdm(range(steps)):
         imgs.requires_grad = True
         outputs = model.predict(imgs)  # (num_sample, num_class)
         loss1 = torch.gather(outputs, 1, labels.view(-1, 1))
@@ -107,7 +108,7 @@ def DIFGSM(model, imgs, labels, eps=8/255, alpha=2/255, steps=10, decay=0.0, res
         adv_imgs = adv_imgs + torch.empty_like(adv_imgs).uniform_(-eps, eps)
         adv_imgs = torch.clamp(adv_imgs, 0, 1)
 
-    for _ in range(steps):
+    for _ in tqdm(range(steps)):
         adv_imgs.requires_grad = True
         loss = model(input_diversity(adv_imgs), labels)
         loss.backward()
@@ -133,7 +134,7 @@ def BIM(model, imgs, labels, eps=8/255, alpha=2/255, steps=10):
     :return:
     """
     ori_imgs = imgs.clone().detach()
-    for _ in range(steps):
+    for _ in tqdm(range(steps)):
         imgs.requires_grad = True
         loss = model(imgs, labels)
         loss.backward()
@@ -172,7 +173,7 @@ def CW(model, imgs, labels, c=1, kappa=0, steps=50, lr=0.01):
     Flatten = torch.nn.Flatten()
     opt = optim.Adam([w], lr=lr)
 
-    for step in range(steps):
+    for step in tqdm(range(steps)):
         adv_imgs = tanh_space(w)
 
         current_L2 = MSELoss(Flatten(adv_imgs), Flatten(imgs)).sum(dim=1)

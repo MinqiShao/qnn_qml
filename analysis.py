@@ -20,12 +20,13 @@ def visualize_circuit():
     test_x, test_y = test_x[:1], test_y[:1]
     test_x = torch.flatten(test_x, start_dim=1)
 
-
     fig_save_path = os.path.join(conf.visual_dir, 'circuits')
     if not os.path.exists(fig_save_path):
         os.makedirs(fig_save_path)
     fig_save_path = os.path.join(fig_save_path, conf.structure + '.png')
-    # model.visualize_circuit(test_x, params, fig_save_path)
+
+    params, model = load_params_from_path(conf, device)
+    model.visualize_circuit(test_x, params, fig_save_path)
 
 
 def analyse_qinfo(c_n='MW'):
@@ -112,10 +113,10 @@ def compare_adv():
     in_o, out_o, chan_o = MW(ori_img, params, conf, d)
     in_c, out_c, chan_c = MW(c_img, params, conf, d)
     in_q, out_q, chan_q = MW(q_img, params, conf, d)
-    for i in range(len(common_idx)):
-        print(f'---{common_idx[i]} img---')
-        print(f'ori in: {in_o[i]}, adv in: {in_c[i]}, QuanTest: {in_q[i]}')
-        print(f'ori out: {out_o[i]}, adv out: {out_c[i]}, QuanTest: {out_q[i]}')
+    # for i in range(len(common_idx)):
+    #     print(f'---{common_idx[i]} img---')
+    #     print(f'ori in: {in_o[i]}, adv in: {in_c[i]}, QuanTest: {in_q[i]}')
+    #     print(f'ori out: {out_o[i]}, adv out: {out_c[i]}, QuanTest: {out_q[i]}')
 
     # for imgs that attack classical and qnn successfully
     now_y_q = model.predict(torch.stack(c_img)).detach().argmax(axis=1)

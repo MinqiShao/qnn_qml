@@ -11,8 +11,8 @@ import numpy as np
 from tools.embedding import *
 import autograd.numpy as anp
 
-n_qubits = 8
-dev = qml.device('default.qubit', wires=8)
+n_qubits = 10
+dev = qml.device('default.qubit', wires=n_qubits)
 U = 'U_SU4'
 U_params=15
 
@@ -131,17 +131,23 @@ def Hierarchical_structure(U, params, U_params):
     param5 = params[4 * U_params:5 * U_params]
     param6 = params[5 * U_params:6 * U_params]
     param7 = params[6 * U_params:7 * U_params]
+    param8 = params[7 * U_params:8 * U_params]
+    param9 = params[8 * U_params:9 * U_params]
+    param10 = params[9 * U_params:10 * U_params]
 
     # 1st Layer
     U(param1, wires=[0, 1])
     U(param2, wires=[2, 3])
     U(param3, wires=[4, 5])
     U(param4, wires=[6, 7])
+    U(param5, wires=[8, 9])
     # 2nd Layer
-    U(param5, wires=[1, 3])
-    U(param6, wires=[5, 7])
+    U(param6, wires=[1, 3])
+    U(param7, wires=[3, 5])
+    U(param8, wires=[5, 7])
+    U(param9, wires=[7, 9])
     # 3rd Layer
-    U(param7, wires=[3, 7])
+    U(param10, wires=[3, 7])
 
 
 @qml.qnode(dev, interface='torch')
@@ -182,7 +188,7 @@ class Hierarchical(nn.Module):
         super(Hierarchical, self).__init__()
         self.embedding_type = embedding_type
 
-        total_params = U_params * 7
+        total_params = U_params * 10
         weight_shapes = {'weights': (total_params, )}
         self.ql = qml.qnn.TorchLayer(Hierarchical_circuit, weight_shapes)
 

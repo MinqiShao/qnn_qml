@@ -10,14 +10,14 @@ import torchvision.transforms.functional as F
 
 def load_dataset(name, dir, reduction, resize=False, class_idx=[0, 1], scale=1.0):
     if name == 'mnist':
-        train_set = datasets.MNIST(dir, train=True, download=True, transform=None if resize else transforms.ToTensor())
-        test_set = datasets.MNIST(dir, train=False, download=True, transform=None if resize else transforms.ToTensor())
+        train_set = datasets.MNIST(dir, train=True, download=True, transform=transforms.ToTensor())
+        test_set = datasets.MNIST(dir, train=False, download=True, transform=transforms.ToTensor())
     elif name == 'fashion_mnist':
-        train_set = datasets.FashionMNIST(dir, train=True, download=True, transform=None if resize else transforms.ToTensor())
-        test_set = datasets.FashionMNIST(dir, train=False, download=True, transform=None if resize else transforms.ToTensor())
+        train_set = datasets.FashionMNIST(dir, train=True, download=True, transform=transforms.ToTensor())
+        test_set = datasets.FashionMNIST(dir, train=False, download=True, transform=transforms.ToTensor())
     elif name == 'emnist':
-        train_set = datasets.EMNIST(dir, train=True, download=True, transform=None if resize else transforms.ToTensor(), split='digits')
-        test_set = datasets.EMNIST(dir, train=False, download=True, transform=None if resize else transforms.ToTensor(), split='digits')
+        train_set = datasets.EMNIST(dir, train=True, download=True, transform=transforms.ToTensor(), split='digits')
+        test_set = datasets.EMNIST(dir, train=False, download=True, transform=transforms.ToTensor(), split='digits')
 
     scaled_train_idx = filter_data(train_set, class_idx, scale)
     scaled_test_idx = filter_data(test_set, class_idx, scale)
@@ -35,9 +35,7 @@ def load_dataset(name, dir, reduction, resize=False, class_idx=[0, 1], scale=1.0
     selected_train = Subset(train_set, scaled_train_idx)
     selected_test = Subset(test_set, scaled_test_idx)
 
-    return DataLoader(selected_train, batch_size=64, shuffle=True), DataLoader(selected_test, batch_size=64), \
-    train_set.data[scaled_train_idx], train_set.targets[scaled_train_idx], test_set.data[scaled_test_idx], \
-    test_set.targets[scaled_test_idx]
+    return DataLoader(selected_train, batch_size=64, shuffle=True), DataLoader(selected_test, batch_size=64)
 
 
 def transform_labels(y, class_idx=[0, 1]):

@@ -33,10 +33,9 @@ def train(model_type=conf.structure, class_idx=conf.class_idx, e_type=conf.encod
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones)
 
-    train_data, test_data, _, _, test_x, test_y = load_dataset(name=conf.dataset, dir=conf.data_dir, reduction=conf.reduction,
+    train_data, test_data = load_dataset(name=conf.dataset, dir=conf.data_dir, reduction=conf.reduction,
                                                      resize=conf.resize,
                                                      class_idx=class_idx, scale=conf.data_scale)
-    test_x = test_x.float() / 255.0
 
     model = model.to(device)
     best_acc = 0
@@ -93,19 +92,13 @@ def train(model_type=conf.structure, class_idx=conf.class_idx, e_type=conf.encod
         model.eval()
         y_trues = []
         y_preds = []
-        # for i, (images, labels) in enumerate(test_data):
-        #     images, labels = images.to(device), labels.to(device)
-        #     with torch.no_grad():
-        #         outputs = model.predict(images)
-        #         # loss = criterion(outputs, labels)
-        #     y_trues += labels.cpu().numpy().tolist()
-        #     y_preds += outputs.data.cpu().numpy().argmax(axis=1).tolist()
-
-        with torch.no_grad():
-            outputs = model.predict(test_x)
-            loss = model(test_x, test_y)
-        y_trues += test_y.cpu().numpy().tolist()
-        y_preds += outputs.data.cpu().numpy().argmax(axis=1).tolist()
+        for i, (images, labels) in enumerate(test_data):
+            images, labels = images.to(device), labels.to(device)
+            with torch.no_grad():
+                outputs = model.predict(images)
+                # loss = criterion(outputs, labels)
+            y_trues += labels.cpu().numpy().tolist()
+            y_preds += outputs.data.cpu().numpy().argmax(axis=1).tolist()
 
         test_acc = accuracy_score(y_trues, y_preds)
         log('Test: Loss: {:.6f}, Acc: {:.6f}'.format(loss.item(), test_acc))

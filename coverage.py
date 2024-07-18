@@ -44,7 +44,10 @@ def train_range_circuit(train_x, params):
     :return: save min/max of each state of each block [{'min_l': [state_num], 'max_l': [state_num]}, ...]
     """
     results = []
-    save_path = os.path.join(log_dir, cir + '_range_' + str(conf.class_idx) + '.pth')
+    save_path = os.path.join(log_dir, cir + '_range_' + str(conf.class_idx) + '_' + str(conf.num_train) + '.pth')
+    if os.path.exists(save_path):
+        print(f'{save_path} has existed.')
+        return
 
     for d in block_dict[conf.structure]:
         min_list = torch.ones((state_num, ))  # min/max prob for each state
@@ -73,7 +76,10 @@ def train_ent_circuit(train_x, params):
     :return:
     """
     results = []
-    save_path = os.path.join(log_dir, cir + '_range_' + str(conf.class_idx) + '.pth')
+    save_path = os.path.join(log_dir, cir + '_range_' + str(conf.class_idx) + '_' + str(conf.num_train) + '.pth')
+    if os.path.exists(save_path):
+        print(f'{save_path} has existed.')
+        return
 
     for d in block_dict[conf.structure]:
         min = 1
@@ -98,7 +104,11 @@ def train_range_kernel(train_x, params):
     save_path = os.path.join(conf.analysis_dir, conf.dataset, conf.structure)
     if not os.path.exists(save_path):
         os.makedirs(save_path)
-    save_path = os.path.join(save_path, 'range_' + str(conf.class_idx) + '.pth')
+    save_path = os.path.join(save_path, 'range_' + str(conf.class_idx) + '_' + str(conf.num_train) + '.pth')
+    if os.path.exists(save_path):
+        print(f'{save_path} has existed.')
+        return
+
     min_list = torch.ones((state_num_, ))
     max_list = torch.full((state_num_, ), -1.0, dtype=torch.float32)
     for i, x in enumerate(train_x):
@@ -127,7 +137,7 @@ def test_per_block_bucket(test_x, params):
     :param params:
     :return:
     """
-    range_l = torch.load(os.path.join(conf.analysis_dir, conf.dataset, conf.structure, cir + '_range_' + str(conf.class_idx) + '.pth'))
+    range_l = torch.load(os.path.join(conf.analysis_dir, conf.dataset, conf.structure, cir + '_range_' + str(conf.class_idx) + '_' + str(conf.num_train) +'.pth'))
 
     log('Compute bucket coverage of testing data...')
     for d in block_dict[conf.structure]:
@@ -157,7 +167,7 @@ def test_block_corner(test_x, params):
     :param params:
     :return:
     """
-    range_l = torch.load(os.path.join(conf.analysis_dir, conf.dataset, conf.structure, cir + '_range_' + str(conf.class_idx) + '.pth'))
+    range_l = torch.load(os.path.join(conf.analysis_dir, conf.dataset, conf.structure, cir + '_range_' + str(conf.class_idx) + '_' + str(conf.num_train) +'.pth'))
     log('Compute corner coverage of testing data...')
     for d in block_dict[conf.structure]:
         upper_cover = torch.zeros((state_num, ))
@@ -191,13 +201,12 @@ def test_block_topk(test_x, params, topk=1):
 
 
 def test_block_ent(test_x, params):
-    range_l = torch.load(
-        os.path.join(conf.analysis_dir, conf.dataset, conf.structure, cir + '_range_' + str(conf.class_idx) + '.pth'))
+    range_l = torch.load(os.path.join(conf.analysis_dir, conf.dataset, conf.structure, cir + '_range_' + str(conf.class_idx) + '_' + str(conf.num_train) +'.pth'))
     log('Compute the entanglement coverage of testing data...')
     for d in block_dict[conf.structure]:
         bucket_list = torch.zeros((k, ), dtype=torch.int)
         min_e, max_e, r_l = range_l[d - 1]['min'], range_l[d - 1]['max'], range_l[d - 1]['range_len']
-        _, ent_l, _ = MW(test_x, params, conf, d)  # test_x.shape[0]
+        _, ent_l, chan_ent = MW(test_x, params, conf, d)  # test_x.shape[0]
         upper_num, lower_num = 0, 0
         for e in ent_l:
             if e < min_e:
@@ -207,7 +216,8 @@ def test_block_ent(test_x, params):
                 upper_num += 1
                 continue
             bucket_list[int((e - min_e) // r_l)] = 1
-        log(f'Block {d}: out entanglement coverage: {torch.sum(bucket_list).item()/k * 100}%, upper: {upper_num}/{test_x.shape[0]}, lower: {lower_num}/{test_x.shape[0]}')
+        log(f'Block {d}: avg_ent_chan: {torch.mean(chan_ent).item()}'
+            f'out entanglement coverage: {torch.sum(bucket_list).item()/k * 100}%, upper: {upper_num}/{test_x.shape[0]}, lower: {lower_num}/{test_x.shape[0]}')
 
 
 def test_kernel_bucket(test_x, params):
@@ -221,8 +231,7 @@ def test_kernel_bucket(test_x, params):
     bucket_list = torch.zeros((state_num_, k), dtype=torch.int)
     feat_list = []
 
-    range_l = torch.load(
-        os.path.join(conf.analysis_dir, conf.dataset, conf.structure, 'range_' + str(conf.class_idx) + '.pth'))
+    range_l = torch.load(os.path.join(conf.analysis_dir, conf.dataset, conf.structure, cir + '_range_' + str(conf.class_idx) + '_' + str(conf.num_train) +'.pth'))
     min_l, max_l, range_len, r_exist_l = range_l['min_l'], range_l['max_l'], range_l['range_len'], range_l['r_exist_l']
     for i, x in enumerate(test_x):
         p = kernel_out(x, conf, params, exp)
@@ -243,11 +252,28 @@ def test_kernel_bucket(test_x, params):
 
     r_e_num = torch.sum(r_exist_l).item()
     t_state = (state_num_-r_e_num)*1 + r_e_num*k  # todo bucket总数
-    # t_state = r_e_num * k
-    print(f'coverage: {covered_num}/{t_state}={covered_num / t_state * 100}%')
+    log(f'coverage: {covered_num}/{t_state}={covered_num / t_state * 100}%')
 
     # print(f'visualize...')
     # visual_feature_dis(torch.stack(feat_list), conf.num_test_img, conf.structure + '_ql')
+
+
+def test_kernel_corner(test_x, params):
+    f_num = state_num * 14*14
+    range_l = torch.load(os.path.join(conf.analysis_dir, conf.dataset, conf.structure, cir + '_range_' + str(conf.class_idx) + '_' + str(conf.num_train) +'.pth'))
+    min_l, max_l, range_len, r_exist_l = range_l['min_l'], range_l['max_l'], range_l['range_len'], range_l['r_exist_l']
+
+    upper_cover = torch.zeros((f_num,))
+    lower_cover = torch.zeros((f_num,))
+    for i, x in enumerate(test_x):
+        p = kernel_out(x, conf, params, exp)
+        for j, f in enumerate(p):
+            if f < min_l[j]:
+                lower_cover[j] = 1
+            if f > max_l[j]:
+                upper_cover[j] = 1
+    u, l = torch.sum(upper_cover).item(), torch.sum(lower_cover).item()
+    log(f'upper cover: {u}/{f_num}, lower cover: {l}/{f_num}, coverage: {(u+l)/(2*f_num)*100}%')
 
 
 def visual_feature_dis(data, n_per_c, block_name='block1'):
@@ -280,7 +306,7 @@ if __name__ == '__main__':
     log('Getting range info from training data...')
     if conf.structure in ['qcl', 'ccqc', 'pure_qcnn']:
         if conf.cov_cri == 'ent':
-            #train_ent_circuit(train_x, params)
+            train_ent_circuit(train_x, params)
             test_block_ent(test_x, params)
         else:
             train_range_circuit(train_x, params)
@@ -292,3 +318,4 @@ if __name__ == '__main__':
         train_range_kernel(train_x, params)
         log('Completed.')
         test_kernel_bucket(test_x, params)
+        test_kernel_corner(test_x, params)

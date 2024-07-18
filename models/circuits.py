@@ -64,7 +64,11 @@ def pure_multi_circuit(n_qubits, depth, inputs, weights, exec_=True):
         qml.Hadamard(wires=q)
         for i in range(var_per_qubit):
             if (q * var_per_qubit + i) < len(inputs):
-                exec('qml.{}({}, wires = {})'.format(gates[i], inputs[q * var_per_qubit + i], q))
+                if gates[i] == 'RZ':
+                    qml.RZ(inputs[q * var_per_qubit + i], wires=q)
+                elif gates[i] == 'RY':
+                    qml.RY(inputs[q * var_per_qubit + i], wires=q)
+                # exec('qml.{}({}, wires = {})'.format(gates[i], inputs[q * var_per_qubit + i], q))
             else:
                 pass
     ######

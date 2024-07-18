@@ -92,6 +92,8 @@ class MultiEncoding(nn.Module):
         return loss
 
     def predict(self, x):
+        if len(x.shape) < 4:
+            x = x.reshape(x.shape[0], 1, 28, 28)
         x = self.qc(x)
         x = self.fc1(x)
         x = self.lr1(x)
