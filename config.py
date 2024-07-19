@@ -17,6 +17,7 @@ def get_arguments():
                                                                         'qcl', 'ccqc', 'pure_qcnn',
                                                                         'pure_single', 'pure_multi', 'quanv', 'inception',
                                                                         'hier', 'hier_qcnn'])
+    parser.add_argument('--hier_u', type=str, default='U_SU4', choices=['U_SU4', 'U_TTN', 'U_5', 'U_6', 'U_9', 'U_13', 'U_14', 'U_15', 'U_SO4'])
     parser.add_argument('--encoding', type=str, default='amplitude', choices=['amplitude', 'angle_y', 'angle_xyz',
                                                                               'hde', 'hae'])
     parser.add_argument('--reduction', type=str, default='resize', choices=['resize', 'pca', 'encoder'])

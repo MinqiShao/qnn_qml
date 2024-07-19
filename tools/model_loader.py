@@ -5,11 +5,13 @@ import torch
 import os
 
 
-def load_model(v, model_type, class_idx, device, data_size=28, e_type='amplitude'):
-    print(f'!!loading model {model_type} of {v}')
+def load_model(conf, device, data_size=28, e_type='amplitude'):
+    model_type = conf.structure
+    class_idx = conf.class_idx
+    print(f'model: {model_type} of {conf.version}')
     num_classes = len(class_idx)
 
-    if v == 'qml':
+    if conf.version == 'qml':
         if model_type == 'classical':
             model = Classical(num_classes=num_classes)
         elif model_type == 'pure_single':
@@ -20,17 +22,17 @@ def load_model(v, model_type, class_idx, device, data_size=28, e_type='amplitude
             model = InceptionNet(num_classes=num_classes)
         elif model_type == 'hier':
             assert num_classes == 2
-            model = Hierarchical(embedding_type=e_type)
+            model = Hierarchical(embedding_type=e_type, u=conf.hier_u)
         elif model_type == 'hier_qcnn':
             assert num_classes == 2
-            model = QCNN_classifier(e=e_type)
+            model = QCNN_classifier(e=e_type, u=conf.hier_u)
         elif model_type == 'qcl':
             model = QCL_classifier(num_classes=num_classes)
         elif model_type == 'ccqc':
             model = CCQC_classifier(e=e_type, num_classes=num_classes)
         elif model_type == 'pure_qcnn':
             model = QCNN_c(num_classes=num_classes)
-    elif v == 'tq':
+    elif conf.version == 'tq':
         if model_type == 'pure_single':
             model = SingleEncoding_(device=device, num_classes=num_classes, img_size=data_size)
         elif model_type == 'pure_multi':
@@ -52,7 +54,7 @@ def load_params_from_path(conf, device):
         mode_path = os.path.join(conf.model_dir, conf.dataset, conf.version, conf.structure,
                                  str(conf.class_idx) + '.pth')
     print(f'load model from: {mode_path}...')
-    model = load_model(v=conf.version, model_type=conf.structure, class_idx=conf.class_idx,
+    model = load_model(conf=conf,
                        device=device, data_size=28, e_type=conf.encoding)
     model.load_state_dict(torch.load(mode_path))
     model.eval()

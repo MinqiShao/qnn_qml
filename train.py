@@ -26,8 +26,7 @@ else:
 def train(model_type=conf.structure, class_idx=conf.class_idx, e_type=conf.encoding):
     print(f'training on {device}')
 
-    model = load_model(v=conf.version, model_type=model_type, class_idx=class_idx, device=device,
-                       data_size=28, e_type=e_type)
+    model = load_model(conf=conf, data_size=28, e_type=e_type, device=device)
 
     # criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -39,6 +38,8 @@ def train(model_type=conf.structure, class_idx=conf.class_idx, e_type=conf.encod
 
     model = model.to(device)
     best_acc = 0
+    if conf.structure == 'hier' or conf.structure == 'hier_qcnn':
+        model_type += '_' + conf.hier_u
     model_save_path = os.path.join(conf.model_dir, conf.dataset, conf.version, model_type)
     if not os.path.exists(model_save_path):
         os.makedirs(model_save_path)

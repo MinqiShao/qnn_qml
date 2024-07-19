@@ -1,7 +1,6 @@
 """
-Hierarchical circuit quantum classifier
-8 qubits, 2分类
-resize
+Hierarchical circuit quantum classifier (2分类)
+https://arxiv.org/abs/2108.00661
 """
 
 import pennylane as qml
@@ -9,12 +8,33 @@ import torch
 import torch.nn as nn
 import numpy as np
 from tools.embedding import *
-import autograd.numpy as anp
+from models.circuits import qubit_dict
 
-n_qubits = 10
+n_qubits = qubit_dict['hier']
 dev = qml.device('default.qubit', wires=n_qubits)
-U = 'U_SU4'
-U_params=15
+U = None
+
+def param_num(u):
+    num = 0
+    if u == 'U_TTN':
+        num = 2
+    elif u == 'U_5':
+        num = 10
+    elif u == 'U_6':
+        num = 10
+    elif u == 'U_9':
+        num = 2
+    elif u == 'U_13':
+        num = 6
+    elif u == 'U_14':
+        num = 6
+    elif u == 'U_15':
+        num = 4
+    elif u == 'U_SO4':
+        num = 6
+    elif u == 'U_SU4':
+        num = 15
+    return num
 
 
 # Unitary ansatz for conv layer
@@ -179,15 +199,17 @@ def Hierarchical_circuit(inputs, weights):
         print("Invalid Unitary Ansatz")
         return False
 
-    # return qml.expval(qml.PauliZ(7))
     return qml.probs(wires=7)  # (bs, 2)
 
 
 class Hierarchical(nn.Module):
-    def __init__(self, embedding_type='amplitude'):
+    def __init__(self, u='U_SU4', embedding_type='amplitude'):
         super(Hierarchical, self).__init__()
+        global U
+        U = u
         self.embedding_type = embedding_type
 
+        U_params = param_num(u)
         total_params = U_params * 10
         weight_shapes = {'weights': (total_params, )}
         self.ql = qml.qnn.TorchLayer(Hierarchical_circuit, weight_shapes)
@@ -209,20 +231,22 @@ class Hierarchical(nn.Module):
 
 # quantum circuits for conv layers and pool layers
 def conv1(U, params):
-    U(params, wires=[0, 7])
+    U(params, wires=[0, 9])
     for i in range(0, n_qubits, 2):
         U(params, wires=[i, i+1])
     for i in range(1, n_qubits-1, 2):
         U(params, wires=[i, i+1])
 
 def conv2(U, params):
-    U(params, wires=[0, 6])
+    U(params, wires=[0, 8])
     U(params, wires=[0, 2])
-    U(params, wires=[4, 6])
     U(params, wires=[2, 4])
+    U(params, wires=[4, 6])
+    U(params, wires=[6, 8])
 
 def conv3(U, params):
     U(params, wires=[0, 4])
+    U(params, wires=[4, 8])
 
 def pool1(V, params):
     for i in range(0, n_qubits, 2):
@@ -231,6 +255,7 @@ def pool1(V, params):
 def pool2(V, params):
     V(params, wires=[2, 0])
     V(params, wires=[6, 4])
+    V(params, wires=[0, 8])
 
 def pool3(V, params):
     V(params, wires=[0, 4])
@@ -280,18 +305,22 @@ def QCNN_circuit(inputs, weights):
 
 
 class QCNN_classifier(nn.Module):
-    def __init__(self, e='amplitude'):
+    def __init__(self, u='U_SU4', e='amplitude'):
         super().__init__()
+        global U
+        U = u
         self.e_type = e
-        total_params = U_params * 3 + 6
+        total_params = param_num(u) * 3 + 6
         weight_shapes = {'weights': (total_params,)}
         self.ql = qml.qnn.TorchLayer(QCNN_circuit, weight_shapes)
 
     def forward(self, x, y):
-        x = torch.flatten(x, start_dim=1)
-        x = self.ql(x)
-        x = x.float()
-        return x
+        preds = self.predict(x)
+        loss = torch.FloatTensor([0])
+        for l, p in zip(y, preds):
+            c_e = l * (torch.log(p[l])) + (1 - l) * torch.log(1 - p[1 - l])
+            loss = loss + c_e
+        return -1 * loss
 
     def predict(self, x):
         x = torch.flatten(x, start_dim=1)

@@ -95,6 +95,6 @@ block_dict = {'qcl': [1, 2, 3, 4, 5],  # 'block1', 'block2', 'block3', 'block4',
 depth_dict = {'qcl': 5,  # 'block1', 'block2', 'block3', 'block4', 'block5'
               'ccqc': 5,
               'pure_qcnn': 2}
-qubit_dict = {'qcl': 10, 'ccqc': 10, 'pure_qcnn': 10, 'pure_single': 4, 'pure_multi': 4}
+qubit_dict = {'qcl': 10, 'ccqc': 10, 'pure_qcnn': 10, 'pure_single': 4, 'pure_multi': 4, 'hier': 10}
 
 

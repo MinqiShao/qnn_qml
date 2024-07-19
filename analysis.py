@@ -131,5 +131,5 @@ def compare_adv():
 
 
 # analyse_qinfo(c_n='MW')
-# visualize_circuit()
-compare_adv()
+visualize_circuit()
+#compare_adv()
