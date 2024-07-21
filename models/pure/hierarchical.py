@@ -7,6 +7,8 @@ import pennylane as qml
 import torch
 import torch.nn as nn
 import numpy as np
+from matplotlib import pyplot as plt
+
 from tools.embedding import *
 from models.circuits import qubit_dict
 
@@ -142,8 +144,8 @@ def Pooling_ansatz3(*params, wires): #3 params
     qml.CRot(*params, wires=[wires[0], wires[1]])
 
 
-
-def Hierarchical_structure(U, params, U_params):
+# todo 分解为3 layers
+def Hierarchical_structure(U, params, U_params, depth_=3):
     param1 = params[0 * U_params:1 * U_params]
     param2 = params[1 * U_params:2 * U_params]
     param3 = params[2 * U_params:3 * U_params]
@@ -202,6 +204,11 @@ def Hierarchical_circuit(inputs, weights):
     return qml.probs(wires=7)  # (bs, 2)
 
 
+@qml.qnode(dev, interface='torch')
+def Hierarchical_circuit_prob(inputs, weights, exp=False, depth_=3):
+    pass
+
+
 class Hierarchical(nn.Module):
     def __init__(self, u='U_SU4', embedding_type='amplitude'):
         super(Hierarchical, self).__init__()
@@ -227,6 +234,11 @@ class Hierarchical(nn.Module):
         x = self.ql(x)
         x = x.float()
         return x
+
+    def visualize_circuit(self, x, weights, save_path):
+        fig, ax = qml.draw_mpl(Hierarchical_circuit)(x, weights)
+        fig.show()
+        plt.savefig(save_path)
 
 
 # quantum circuits for conv layers and pool layers

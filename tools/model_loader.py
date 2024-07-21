@@ -47,18 +47,23 @@ def load_model(conf, device, data_size=28, e_type='amplitude'):
 
 
 def load_params_from_path(conf, device):
+    model_n = conf.structure
+    if conf.structure == 'hier' or conf.structure == 'hier_qcnn':
+        model_n = model_n + '_' + conf.hier_u
     if conf.resize:
-        mode_path = os.path.join(conf.model_dir, conf.dataset, conf.version, conf.structure,
+        mode_path = os.path.join(conf.model_dir, conf.dataset, conf.version, model_n,
                                  conf.reduction + '_' + str(conf.class_idx) + '.pth')
     else:
-        mode_path = os.path.join(conf.model_dir, conf.dataset, conf.version, conf.structure,
+        mode_path = os.path.join(conf.model_dir, conf.dataset, conf.version, model_n,
                                  str(conf.class_idx) + '.pth')
+
     print(f'load model from: {mode_path}...')
     model = load_model(conf=conf,
                        device=device, data_size=28, e_type=conf.encoding)
     model.load_state_dict(torch.load(mode_path))
     model.eval()
     state_dict = model.state_dict()
+
     weight_name = weight_dict[conf.structure]
     if type(weight_name) is list:
         params = []

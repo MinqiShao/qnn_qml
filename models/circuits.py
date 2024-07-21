@@ -80,13 +80,18 @@ def pure_multi_circuit(n_qubits, depth, inputs, weights, exec_=True):
                 qml.RY(weights[d, j], wires=j % n_qubits)
 
 
+########## Hierarchical ##########
+# todo
+
+
 ########## dict ##########
 weight_dict = {'classical': ['conv.weight', 'conv.bias', 'fc1.weight', 'fc1.bias', 'fc2.weight', 'fc2.bias'],
                'qcl': 'ql.weights',
                'pure_qcnn': ['cir.weights_conv1', 'cir.weights_conv2', 'cir.weights_pool1', 'cir.weights_pool2', 'cir.weights_fc'],
                'ccqc': ['ql.weights', 'ql.weights_1', 'ql.weights_2'],
                'pure_single': 'qc.ql1.weights',
-               'pure_multi': 'qc.ql1.weights'}
+               'pure_multi': 'qc.ql1.weights',
+               'hier': 'ql.weights'}
 block_dict = {'qcl': [1, 2, 3, 4, 5],  # 'block1', 'block2', 'block3', 'block4', 'block5'
               'ccqc': [1, 2, 3, 4, 5],
               'pure_qcnn': [0, 1, 2],  # 0: whole, 1: conv1+pool1, 2: conv1+pool1+conv2+pool2

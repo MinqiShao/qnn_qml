@@ -4,6 +4,30 @@ import seaborn as sns
 import pandas as pd
 
 
+def train_line(e_l, train_l, test_l, save_path, type_='loss'):
+    """
+    训练过程的train loss/acc和test loss/acc变化折线
+    :param type_: loss or accuracy
+    :param e_l: epoch list
+    :param train_l: list
+    :param test_l: list
+    :param save_path:
+    :return:
+    """
+    plt.figure(figsize=(10, 5))
+    plt.plot(e_l, train_l, label='train_' + type_, color='blue')
+    plt.plot(e_l, test_l, label='test_' + type_, color='orange')
+    plt.xlabel('epochs')
+    plt.ylabel(type_)
+    plt.legend()
+    plt.xticks(e_l)
+    if type_ == 'accuracy':
+        plt.yticks(range(0, 101, 10))
+    plt.tight_layout()
+    plt.show()
+    plt.savefig(save_path)
+
+
 def line_graph(x, y, save_path, label_n='ent_out'):
     """
     折线图

@@ -18,12 +18,15 @@ device = torch.device('cpu')
 def visualize_circuit():
     test_x, test_y = load_part_data(conf, num_data=conf.num_test)
     test_x, test_y = test_x[:1], test_y[:1]
-    test_x = torch.flatten(test_x, start_dim=1)
+    test_x = torch.flatten(test_x, start_dim=0)
 
     fig_save_path = os.path.join(conf.visual_dir, 'circuits')
     if not os.path.exists(fig_save_path):
         os.makedirs(fig_save_path)
-    fig_save_path = os.path.join(fig_save_path, conf.structure + '.png')
+    model_n = conf.structure
+    if conf.structure == 'hier':
+        model_n = conf.structure + '_' + conf.hier_u
+    fig_save_path = os.path.join(fig_save_path, model_n + '.png')
 
     params, model = load_params_from_path(conf, device)
     model.visualize_circuit(test_x, params, fig_save_path)
