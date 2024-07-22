@@ -11,7 +11,7 @@ from tools import Log
 from tools.internal import block_out, kernel_out
 from tools.gragh import dot_graph
 from tools.entanglement import MW
-from models.circuits import block_dict, qubit_dict
+from models.circuits import block_dict, qubit_block_dict
 import torch
 import os
 from datetime import datetime
@@ -19,17 +19,20 @@ from datetime import datetime
 conf = get_arguments()
 device = torch.device('cpu')
 
-n_qubits = qubit_dict[conf.structure]
+n_qubit_list = qubit_block_dict[conf.structure]
 k = 100  # bucket num
 cir = conf.cov_cri
 if cir == 'prob':
-    state_num = 2 ** n_qubits
+    n_qubit_list = [2**n for n in n_qubit_list]
     exp = False
 else:
-    state_num = n_qubits
     exp = True
 
-log_dir = os.path.join(conf.analysis_dir, conf.dataset, conf.structure)
+if conf.structure == 'hier':
+    model_n = 'hier_' + conf.hier_u
+else:
+    model_n = conf.structure
+log_dir = os.path.join(conf.analysis_dir, conf.dataset, model_n)
 if not os.path.exists(log_dir):
     os.makedirs(log_dir)
 log_path = os.path.join(log_dir, 'log' + str(conf.class_idx) + '.txt')
@@ -49,9 +52,9 @@ def train_range_circuit(train_x, params):
         print(f'{save_path} has existed.')
         return
 
-    for d in block_dict[conf.structure]:
-        min_list = torch.ones((state_num, ))  # min/max prob for each state
-        max_list = torch.zeros((state_num, ))
+    for idx, d in enumerate(block_dict[conf.structure]):
+        min_list = torch.ones((n_qubit_list[idx], ))  # min/max prob for each state
+        max_list = torch.full((n_qubit_list[idx], ), -1.0, dtype=torch.float32)
 
         log(f'Block {d}')
         for i, x in enumerate(train_x):
@@ -99,12 +102,9 @@ def train_ent_circuit(train_x, params):
 
 
 def train_range_kernel(train_x, params):
-    state_num_ = state_num * 14 * 14
+    state_num_ = n_qubit_list[0] * 14 * 14
 
-    save_path = os.path.join(conf.analysis_dir, conf.dataset, conf.structure)
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
-    save_path = os.path.join(save_path, 'range_' + str(conf.class_idx) + '_' + str(conf.num_train) + '.pth')
+    save_path = os.path.join(log_dir, 'range_' + str(conf.class_idx) + '_' + str(conf.num_train) + '.pth')
     if os.path.exists(save_path):
         print(f'{save_path} has existed.')
         return
@@ -137,12 +137,12 @@ def test_per_block_bucket(test_x, params):
     :param params:
     :return:
     """
-    range_l = torch.load(os.path.join(conf.analysis_dir, conf.dataset, conf.structure, cir + '_range_' + str(conf.class_idx) + '_' + str(conf.num_train) +'.pth'))
+    range_l = torch.load(os.path.join(log_dir, cir + '_range_' + str(conf.class_idx) + '_' + str(conf.num_train) +'.pth'))
 
     log('Compute bucket coverage of testing data...')
-    for d in block_dict[conf.structure]:
-        bucket_list = torch.zeros((state_num, k), dtype=torch.int)
-        feat_list = torch.zeros((test_x.shape[0], state_num))
+    for idx, d in enumerate(block_dict[conf.structure]):
+        bucket_list = torch.zeros((n_qubit_list[idx], k), dtype=torch.int)
+        feat_list = torch.zeros((test_x.shape[0], n_qubit_list[idx]))
 
         min_l, max_l, range_len = range_l[d-1]['min_l'], range_l[d-1]['max_l'], range_l[d-1]['range_len']
         for i, x in enumerate(test_x):
@@ -154,7 +154,7 @@ def test_per_block_bucket(test_x, params):
                     continue
                 bucket_list[j][int((prob-min_l[j]) // range_len[j])] = 1
         covered_num = torch.sum(bucket_list).item()
-        log(f'{d} block: {covered_num}/{state_num * k}={covered_num/(state_num*k)*100}%')
+        log(f'{d} block: {covered_num}/{n_qubit_list[idx] * k}={covered_num/(n_qubit_list[idx]*k)*100}%')
 
         # print(f'visualize for block {d}...')
         # visual_feature_dis(feat_list, conf.num_test_img, 'block'+str(d))
@@ -167,11 +167,11 @@ def test_block_corner(test_x, params):
     :param params:
     :return:
     """
-    range_l = torch.load(os.path.join(conf.analysis_dir, conf.dataset, conf.structure, cir + '_range_' + str(conf.class_idx) + '_' + str(conf.num_train) +'.pth'))
+    range_l = torch.load(os.path.join(log_dir, cir + '_range_' + str(conf.class_idx) + '_' + str(conf.num_train) +'.pth'))
     log('Compute corner coverage of testing data...')
-    for d in block_dict[conf.structure]:
-        upper_cover = torch.zeros((state_num, ))
-        lower_cover = torch.zeros((state_num, ))
+    for idx, d in enumerate(block_dict[conf.structure]):
+        upper_cover = torch.zeros((n_qubit_list[idx], ))
+        lower_cover = torch.zeros((n_qubit_list[idx], ))
 
         min_l, max_l = range_l[d - 1]['min_l'], range_l[d - 1]['max_l']
         for i, x in enumerate(test_x):
@@ -183,25 +183,25 @@ def test_block_corner(test_x, params):
                 if v < min_l[j]:
                     lower_cover[j] = 1
         u, l = torch.sum(upper_cover).item(), torch.sum(lower_cover).item()
-        log(f'Block {d}: #upper cover: {u}, #lower cover: {l}, coverage: {(u+l)/(2*state_num)*100}%')
+        log(f'Block {d}: #upper cover: {u}, #lower cover: {l}, coverage: {(u+l)/(2*n_qubit_list[idx])*100}%')
 
 
 def test_block_topk(test_x, params, topk=1):
     # 有多少个neuron曾经成为过某个样本的topk，k=1 2 3
     log('Compute the topk coverage of testing data...')
-    for d in block_dict[conf.structure]:
-        top_l = torch.zeros((state_num, ))
+    for idx, d in enumerate(block_dict[conf.structure]):
+        top_l = torch.zeros((n_qubit_list[idx], ))
 
         for i, x in enumerate(test_x):
             x = torch.flatten(x, start_dim=0)
             p = block_out(x, conf, params, d, exp)
             topk_p = torch.topk(p, k=topk)[1]
             top_l[topk_p] = 1
-        log(f'Block {d}: top {topk} coverage: {torch.sum(top_l).item() / state_num * 100}%')
+        log(f'Block {d}: top {topk} coverage: {torch.sum(top_l).item() / n_qubit_list[idx] * 100}%')
 
 
 def test_block_ent(test_x, params):
-    range_l = torch.load(os.path.join(conf.analysis_dir, conf.dataset, conf.structure, cir + '_range_' + str(conf.class_idx) + '_' + str(conf.num_train) +'.pth'))
+    range_l = torch.load(os.path.join(log_dir, cir + '_range_' + str(conf.class_idx) + '_' + str(conf.num_train) +'.pth'))
     log('Compute the entanglement coverage of testing data...')
     for d in block_dict[conf.structure]:
         bucket_list = torch.zeros((k, ), dtype=torch.int)
@@ -227,11 +227,11 @@ def test_kernel_bucket(test_x, params):
     :param params:
     :return:
     """
-    state_num_ = state_num * 14 * 14  # todo 对于circuit来说只有16个state，卷积过程得到了14*14个结果，这里简单拼接
+    state_num_ = n_qubit_list[0] * 14 * 14  # todo 对于circuit来说只有16个state，卷积过程得到了14*14个结果，这里简单拼接
     bucket_list = torch.zeros((state_num_, k), dtype=torch.int)
     feat_list = []
 
-    range_l = torch.load(os.path.join(conf.analysis_dir, conf.dataset, conf.structure, cir + '_range_' + str(conf.class_idx) + '_' + str(conf.num_train) +'.pth'))
+    range_l = torch.load(os.path.join(log_dir, cir + '_range_' + str(conf.class_idx) + '_' + str(conf.num_train) +'.pth'))
     min_l, max_l, range_len, r_exist_l = range_l['min_l'], range_l['max_l'], range_l['range_len'], range_l['r_exist_l']
     for i, x in enumerate(test_x):
         p = kernel_out(x, conf, params, exp)
@@ -259,8 +259,8 @@ def test_kernel_bucket(test_x, params):
 
 
 def test_kernel_corner(test_x, params):
-    f_num = state_num * 14*14
-    range_l = torch.load(os.path.join(conf.analysis_dir, conf.dataset, conf.structure, cir + '_range_' + str(conf.class_idx) + '_' + str(conf.num_train) +'.pth'))
+    f_num = n_qubit_list[0] * 14*14
+    range_l = torch.load(os.path.join(log_dir, cir + '_range_' + str(conf.class_idx) + '_' + str(conf.num_train) +'.pth'))
     min_l, max_l, range_len, r_exist_l = range_l['min_l'], range_l['max_l'], range_l['range_len'], range_l['r_exist_l']
 
     upper_cover = torch.zeros((f_num,))
@@ -304,7 +304,7 @@ if __name__ == '__main__':
     log(f'Parameter: bucket num: {k}, cir: {conf.cov_cri}, train num: {train_x.shape[0]}, test num: {test_x.shape[0]}')
 
     log('Getting range info from training data...')
-    if conf.structure in ['qcl', 'ccqc', 'pure_qcnn']:
+    if conf.structure in ['qcl', 'ccqc', 'pure_qcnn', 'hier']:
         if conf.cov_cri == 'ent':
             train_ent_circuit(train_x, params)
             test_block_ent(test_x, params)

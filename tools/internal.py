@@ -1,4 +1,4 @@
-from models.pure import QCL, QCNN_pure, CCQC, single_encoding, multi_encoding
+from models.pure import QCL, QCNN_pure, CCQC, single_encoding, multi_encoding, hierarchical
 import torch
 import pennylane as qml
 from pennylane import numpy as np
@@ -65,15 +65,17 @@ def circuit_state(in_state, conf, params):
 def block_out(x, conf, params, depth=1, exp=False):
     # 单个样本
     if conf.structure == 'qcl':
-        prob = QCL.circuit_prob(x, params, depth_=depth, exp=exp)
+        out = QCL.circuit_prob(x, params, depth_=depth, exp=exp)
     elif conf.structure == 'pure_qcnn':
-        prob = QCNN_pure.circuit_prob(x, params[0], params[1], params[2], params[3], params[4], depth=depth, exp=exp)
+        out = QCNN_pure.circuit_prob(x, params[0], params[1], params[2], params[3], params[4], depth=depth, exp=exp)
     elif conf.structure == 'ccqc':
-        prob = CCQC.circuit_prob(x, params[0], params[1], params[2], depth_=depth, exp=exp)
+        out = CCQC.circuit_prob(x, params[0], params[1], params[2], depth_=depth, exp=exp)
+    elif conf.structure == 'hier':
+        out = hierarchical.circuit_prob(x, params, u=conf.hier_u, depth_=depth, exp=exp)
 
     if exp:
-        return torch.tensor(prob)
-    return prob
+        return torch.tensor(out)
+    return out
 
 
 def kernel_out(x, conf, params, exp=False):

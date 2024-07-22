@@ -23,9 +23,9 @@ def load_model(conf, device, data_size=28, e_type='amplitude'):
         elif model_type == 'hier':
             assert num_classes == 2
             model = Hierarchical(embedding_type=e_type, u=conf.hier_u)
-        elif model_type == 'hier_qcnn':
-            assert num_classes == 2
-            model = QCNN_classifier(e=e_type, u=conf.hier_u)
+        # elif model_type == 'hier_qcnn':
+        #     assert num_classes == 2
+        #     model = QCNN_classifier(e=e_type, u=conf.hier_u)
         elif model_type == 'qcl':
             model = QCL_classifier(num_classes=num_classes)
         elif model_type == 'ccqc':

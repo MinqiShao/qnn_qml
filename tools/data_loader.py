@@ -92,10 +92,13 @@ def load_part_data(conf, train_=False, num_data=100):
 
 
 def load_adv_imgs(conf, log):
+    model_n = conf.structure
+    if conf.structure == 'hier':
+        model_n += '_' + conf.hier_u
     if conf.attack == 'QuanTest':
-        p = os.path.join(conf.analysis_dir, 'QuanTest', conf.dataset, conf.structure, str(conf.class_idx))
+        p = os.path.join(conf.analysis_dir, 'QuanTest', conf.dataset, model_n, str(conf.class_idx))
     else:
-        p = os.path.join(conf.analysis_dir, 'AdvAttack', conf.dataset, conf.structure, str(conf.class_idx), conf.attack)
+        p = os.path.join(conf.analysis_dir, 'AdvAttack', conf.dataset, model_n, str(conf.class_idx), conf.attack)
     idx_list = []
     img_list = []
     transform = transforms.Compose([transforms.ToTensor()])
