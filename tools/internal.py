@@ -4,7 +4,8 @@ import pennylane as qml
 from pennylane import numpy as np
 
 ##### obtain state, density matrix
-def in_out_state(x, structure, params, depth=1):
+def in_out_state(x, conf, params, depth=1):
+    structure = conf.structure
     if structure == 'qcl':
         in_state = QCL.circuit_state(x, params, exec_=False, depth_=depth)
         out_state = QCL.circuit_state(x, params, depth_=depth)
@@ -14,6 +15,16 @@ def in_out_state(x, structure, params, depth=1):
     elif structure == 'ccqc':
         in_state = CCQC.circuit_state(x, params[0], params[1], params[2], exec_=False, depth_=depth)
         out_state = CCQC.circuit_state(x, params[0], params[1], params[2], depth_=depth)
+    elif structure == 'hier':
+        in_state = hierarchical.circuit_state(x, params, u=conf.hier_u, depth_=depth, exec_=False)
+        out_state = hierarchical.circuit_state(x, params, u=conf.hier_u, depth_=depth)
+    elif structure == 'pure_single':
+        in_state = single_encoding.feat_all(x, params, ent=True, exec_=False)
+        out_state = single_encoding.feat_all(x, params, ent=True)
+    elif structure == 'pure_multi':
+        in_state = multi_encoding.feat_all(x, params, ent=True, exec_=False)
+        out_state = multi_encoding.feat_all(x, params, ent=True)
+
     return in_state, out_state
 
 
@@ -47,44 +58,36 @@ def circuit_pred(x, params, conf):
         o = QCNN_pure.circuit(x, params[0], params[1], params[2], params[3], params[4])
     elif conf.structure == 'ccqc':
         o = CCQC.circuit(x, params[0], params[1], params[2])
+    elif conf.structure == 'hier':
+        o = hierarchical.circuit(x, params)
     o = o[:len(conf.class_idx)]
     pred = torch.argmax(torch.tensor(o))
     return o, pred
 
 
-def circuit_state(in_state, conf, params):
-    if conf.structure == 'qcl':
-        out_state = QCL.circuit_state(in_state, params)
-    elif conf.structure == 'pure_qcnn':
-        out_state = QCNN_pure.circuit_state(in_state, params[0], params[1], params[2], params[3], params[4])
-    elif conf.structure == 'ccqc':
-        out_state = CCQC.circuit_state(in_state, params[0], params[1], params[2])
-    return out_state
-
-
-def block_out(x, conf, params, depth=1, exp=False):
+def block_out(x, conf, params, depth=1, exec_=True):
     # 单个样本
     if conf.structure == 'qcl':
-        out = QCL.circuit_prob(x, params, depth_=depth, exp=exp)
+        out = QCL.circuit_prob(x, params, depth_=depth, exec_=exec_)
     elif conf.structure == 'pure_qcnn':
-        out = QCNN_pure.circuit_prob(x, params[0], params[1], params[2], params[3], params[4], depth=depth, exp=exp)
+        out = QCNN_pure.circuit_prob(x, params[0], params[1], params[2], params[3], params[4], depth=depth)
     elif conf.structure == 'ccqc':
-        out = CCQC.circuit_prob(x, params[0], params[1], params[2], depth_=depth, exp=exp)
+        out = CCQC.circuit_prob(x, params[0], params[1], params[2], depth_=depth)
     elif conf.structure == 'hier':
-        out = hierarchical.circuit_prob(x, params, u=conf.hier_u, depth_=depth, exp=exp)
-
-    if exp:
-        return torch.tensor(out)
+        out = hierarchical.circuit_prob(x, params, u=conf.hier_u, depth_=depth)
+    #
+    # if exp:
+    #     return torch.tensor(out)
     return out
 
 
-def kernel_out(x, conf, params, exp=False):
+def kernel_out(x, conf, params, ent=False):
     if conf.structure == 'pure_single':
-        prob = single_encoding.feat_prob(x, params, exp=exp)
+        out = single_encoding.feat_all(x, params, ent=ent)
     elif conf.structure == 'pure_multi':
-        prob = multi_encoding.feat_prob(x, params, exp=exp)
+        out = multi_encoding.feat_all(x, params, ent=ent)
 
-    if exp:
-        return torch.tensor(prob)
-    return prob
+    # if exp:
+    #     return torch.tensor(out)
+    return out
 

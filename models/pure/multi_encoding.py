@@ -28,34 +28,31 @@ def circuit(inputs, weights):
 
 
 @qml.qnode(dev, interface='torch')
-def circuit_state(inputs, weights):
-    pure_multi_circuit(n_qubits, depth, inputs, weights)
+def circuit_state(inputs, weights, depth_=depth, exec_=True):
+    pure_multi_circuit(n_qubits, depth_, inputs, weights, exec_)
     return qml.state()
 
 
 @qml.qnode(dev, interface='torch')
-def circuit_prob(inputs, weights, depth_=depth, exp=False):
+def circuit_prob(inputs, weights, depth_=depth):
     pure_multi_circuit(n_qubits, depth_, inputs, weights)
-    if exp:
-        return [qml.expval(qml.PauliZ(i)) for i in range(n_qubits)]
+    # if exp:
+    #     return [qml.expval(qml.PauliZ(i)) for i in range(n_qubits)]
     return qml.probs(wires=l)
 
 
-@qml.qnode(dev, interface='torch')
-def circuit_dm(inputs, weights, q_idx=0, exec_=True):
-    pure_multi_circuit(n_qubits, depth, inputs, weights, exec_)
-    return qml.density_matrix(wires=q_idx)
-
-
-def feat_prob(x, weights, exp=False):
+def feat_all(x, weights, ent=False, exec_=True):
     if len(x.shape) < 3:
         x = x.unsqueeze(0)
     feat = []
     for i in range(0, x.shape[1]-1, 2):
         for j in range(0, x.shape[2]-1, 2):
-            f = circuit_prob(torch.flatten(x[:, i:i+2, j:j+2]), weights, depth, exp=exp)
+            if ent:
+                f = circuit_state(torch.flatten(x[:, i:i + 2, j:j + 2]), weights, depth, exec_=exec_)
+            else:
+                f = circuit_prob(torch.flatten(x[:, i:i+2, j:j+2]), weights, depth)
             feat.append(f)
-    return torch.tensor(np.array(feat).flatten())
+    return torch.tensor(np.array(feat))
 
 
 class Quan2d(nn.Module):

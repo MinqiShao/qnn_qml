@@ -64,7 +64,7 @@ def circuit(inputs, weights):
     :return:
     """
     AmplitudeEmbedding(inputs, wires=range(n_qubits), normalize=True, pad_with=0)
-    Hierarchical_circuit(U, weights)
+    Hierarchical_circuit('U_TTN', weights)
 
     return qml.probs(wires=7)  # (bs, 2)
 

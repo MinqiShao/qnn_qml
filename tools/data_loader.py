@@ -91,7 +91,7 @@ def load_part_data(conf, train_=False, num_data=100):
     return d_set.data[scaled_idx], d_set.targets[scaled_idx]
 
 
-def load_adv_imgs(conf, log):
+def load_adv_imgs(conf):
     model_n = conf.structure
     if conf.structure == 'hier':
         model_n += '_' + conf.hier_u
@@ -110,5 +110,5 @@ def load_adv_imgs(conf, log):
             img = Image.open(img_p).convert('L')
             img = transform(img)
             img_list.append(img)
-    log(f'load {len(img_list)} adv images from {p}')
+    print(f'load {len(img_list)} adv images from {p}')
     return torch.tensor(idx_list), torch.stack(img_list)

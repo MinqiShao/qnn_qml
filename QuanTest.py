@@ -8,8 +8,6 @@ from tools.model_loader import load_params_from_path
 from tools.adv_attack import *
 from models.circuits import depth_dict
 from pennylane.math import fidelity, trace_distance, reduce_statevector
-from pennylane import numpy as np, AmplitudeEmbedding
-import time
 from tools.log import Log
 
 
@@ -46,7 +44,7 @@ def gen_adv():
         x = torch.flatten(test_x[i], start_dim=0)
         x.requires_grad_(True)
 
-        in_state, out_state = in_out_state(x, conf.structure, params, d)
+        in_state, out_state = in_out_state(x, conf, params, d)
         ori_outputs, _ = circuit_pred(x, params, conf)
         ori_outputs = torch.tensor(ori_outputs)
 
@@ -55,7 +53,7 @@ def gen_adv():
             iters += 1
             x.requires_grad_(True)
 
-            now_in_state, now_out_state = in_out_state(x, conf.structure, params, d)
+            now_in_state, now_out_state = in_out_state(x, conf, params, d)
             now_ent_c, now_ent_in, now_ent_out = entQ(now_in_state, now_out_state, ent_k)
             log(f'iter {iters}: QEA: {now_ent_c}, ent_in: {now_ent_in}, ent_out: {now_ent_out}')
 

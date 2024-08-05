@@ -14,13 +14,25 @@ def MW(test_x, params, conf, depth=1):
     out_list = []
     for x in tqdm(test_x):
         x = torch.flatten(x, start_dim=0)
-        in_state, out_state = in_out_state(x, conf.structure, params, depth)
+        in_state, out_state = in_out_state(x, conf, params, depth)
         _, ent_in, ent_out = entQ(in_state, out_state, 1)
         in_list.append(ent_in)
         out_list.append(ent_out)
     in_list = torch.tensor(in_list)
     out_list = torch.tensor(out_list)
     return in_list, out_list, out_list-in_list
+
+def MW_kernel(test_x, params, conf):
+    # for single test_x
+    in_list, out_list = [], []
+    x = torch.flatten(test_x, start_dim=0)
+    in_state, out_state = in_out_state(x, conf, params)  # (169*16)
+    for in_, out_ in zip(in_state, out_state):
+        _, ent_in, ent_out = entQ(in_, out_, 1)
+        in_list.append(ent_in)
+        out_list.append(ent_out)
+    return in_list, out_list
+
 
 
 def entropy(test_x, params, conf):
