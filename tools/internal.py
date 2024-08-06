@@ -75,9 +75,7 @@ def block_out(x, conf, params, depth=1, exec_=True):
         out = CCQC.circuit_prob(x, params[0], params[1], params[2], depth_=depth)
     elif conf.structure == 'hier':
         out = hierarchical.circuit_prob(x, params, u=conf.hier_u, depth_=depth)
-    #
-    # if exp:
-    #     return torch.tensor(out)
+
     return out
 
 
@@ -87,7 +85,7 @@ def kernel_out(x, conf, params, ent=False):
     elif conf.structure == 'pure_multi':
         out = multi_encoding.feat_all(x, params, ent=ent)
 
-    # if exp:
-    #     return torch.tensor(out)
+    if not ent:
+        out = out.flatten()
     return out
 

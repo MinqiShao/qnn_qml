@@ -24,6 +24,7 @@ class Tester:
         self.cri = conf.cov_cri
         self.e_n = 14 * 14  # 卷积次数
         self.k = 100  # cell num
+        self.need_train = True
         self.init_param()
         self.init_path()
 
@@ -37,7 +38,7 @@ class Tester:
         self.params, _ = load_params_from_path(conf, device)
 
     def init_path(self):
-        log_dir = os.path.join(conf.analysis_dir, conf.dataset, self.model_n)
+        log_dir = os.path.join(conf.analysis_dir, conf.dataset, conf.structure)
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
         log_path = os.path.join(log_dir, 'log' + str(conf.class_idx) + '.txt')
@@ -71,7 +72,7 @@ class Tester:
         print(f'example min: {min_list[:10]}, max: {max_list[:10]}, range_exist_num: {torch.sum(r_exist_l).item()}')
 
     def train_ent(self, train_x):
-        log('Compute the entanglement range of training data...')
+        self.log('Compute the entanglement range of training data...')
         min_l = torch.ones((self.e_n,))
         max_l = torch.full((self.e_n,), -1.0, dtype=torch.float32)
         for i, x in enumerate(train_x):
@@ -91,7 +92,7 @@ class Tester:
         print(f'example min: {min_l[:10]}, max: {max_l[:10]}, range_exist_num: {torch.sum(r_exist_l).item()}')
 
     def test_k_cell(self, test_x):
-        log('Compute the k-cell coverage of testing data...')
+        self.log('Compute the k-cell coverage of testing data...')
         state_num_ = self.n_qubit_list[0] * self.e_n  # todo 卷积过程得到了14*14个结果，这里简单拼接
         bucket_list = torch.zeros((state_num_, self.k), dtype=torch.int)
 
@@ -115,10 +116,10 @@ class Tester:
         covered_num = torch.sum(bucket_list).item()
         r_e_num = torch.sum(r_exist_l).item()
         t_state = (state_num_ - r_e_num) * 1 + r_e_num * self.k  # todo bucket总数
-        log(f'coverage: {covered_num}/{t_state}={covered_num / t_state * 100}%')
+        self.log(f'coverage: {covered_num}/{t_state}={covered_num / t_state * 100}%')
 
     def test_corner(self, test_x):
-        log('Compute the corner coverage of testing data...')
+        self.log('Compute the corner coverage of testing data...')
         state_num_ = self.n_qubit_list[0] * self.e_n
         range_l = torch.load(self.save_path)
         min_l, max_l, range_len, r_exist_l = range_l['min_l'], range_l['max_l'], range_l['range_len'], range_l[
@@ -134,11 +135,11 @@ class Tester:
                 if f > max_l[j]:
                     upper_cover[j] = 1
         u, l = torch.sum(upper_cover).item(), torch.sum(lower_cover).item()
-        log(f'upper cover: {u}/{state_num_}, lower cover: {l}/{state_num_}, coverage: {(u + l) / (2 * state_num_) * 100}%')
+        self.log(f'upper cover: {u}/{state_num_}, lower cover: {l}/{state_num_}, coverage: {(u + l) / (2 * state_num_) * 100}%')
 
     def test_k_ent(self, test_x):
         range_l = torch.load(self.save_path)
-        log('Compute the entanglement coverage of testing data...')
+        self.log('Compute the entanglement coverage of testing data...')
         bucket_list = torch.zeros((self.e_n, self.k), dtype=torch.int)
         min_l, max_l, range_len, r_exist_l = range_l['min_l'], range_l['max_l'], range_l['range_len'], range_l[
             'r_exist_l']
@@ -160,11 +161,11 @@ class Tester:
 
         r_e_num = torch.sum(r_exist_l).item()
         t_state = (self.e_n - r_e_num) * 1 + r_e_num * self.k
-        log(f'coverage: {covered_num}/{t_state}={covered_num / t_state * 100}%')
+        self.log(f'coverage: {covered_num}/{t_state}={covered_num / t_state * 100}%')
 
     def run(self, train_x, test_x):
-        log(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-        log(f'Parameter: cell num: {self.k}, cri: {self.cri}, train num: {train_x.shape[0]}, test num: {test_x.shape[0]}')
+        self.log(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        self.log(f'Parameter: cell num: {self.k}, cri: {self.cri}, train num: {train_x.shape[0]}, test num: {test_x.shape[0]}')
         if self.ent:
             if self.need_train:
                 self.train_ent(train_x)

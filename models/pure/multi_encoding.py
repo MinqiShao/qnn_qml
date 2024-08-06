@@ -52,7 +52,7 @@ def feat_all(x, weights, ent=False, exec_=True):
             else:
                 f = circuit_prob(torch.flatten(x[:, i:i+2, j:j+2]), weights, depth)
             feat.append(f)
-    return torch.tensor(np.array(feat))
+    return torch.cat(feat, dim=1)
 
 
 class Quan2d(nn.Module):

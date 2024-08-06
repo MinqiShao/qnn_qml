@@ -34,13 +34,10 @@ def circuit_state(inputs, weights, weights_1, weights_2, exec_=True, depth_=dept
 
 
 @qml.qnode(dev, interface='torch')
-def circuit_prob(inputs, weights, weights_1, weights_2, exp=False, depth_=depth):
+def circuit_prob(inputs, weights, weights_1, weights_2, depth_=depth):
     AmplitudeEmbedding(inputs, wires=range(n_qubits), normalize=True, pad_with=0)
     ccqc_circuit(n_qubits, depth_, weights, weights_1, weights_2)
-    if exp:
-        return [qml.expval(qml.PauliZ(i)) for i in range(n_qubits)]
-    else:
-        return qml.probs(wires=l)
+    return qml.probs(wires=l)
 
 
 @qml.qnode(dev, interface='torch')

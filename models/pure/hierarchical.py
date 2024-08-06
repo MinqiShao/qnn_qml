@@ -78,25 +78,18 @@ def circuit_state(inputs, weights, u=U, depth_=3, exec_=True):
 
 
 @qml.qnode(dev, interface='torch')
-def circuit_prob(inputs, weights, u=U, exp=False, depth_=3):
-    # todo 取depth_ 2或3时取部分qubit的情况
+def circuit_prob(inputs, weights, u=U, depth_=3):
     AmplitudeEmbedding(inputs, wires=range(n_qubits), normalize=True, pad_with=0)
     Hierarchical_circuit(u, weights, depth_)
 
-    if exp:
-        if depth_ == 1:
-            return [qml.expval(qml.PauliZ(i)) for i in range(n_qubits)]
-        if depth_ == 2:
-            return [qml.expval(qml.PauliZ(i)) for i in [1, 3, 5, 7]]
-        if depth_ == 3:
-            return [qml.expval(qml.PauliZ(i)) for i in [3, 7]]
-    else:
-        if depth_ == 1:
-            return qml.probs(wires=l)
-        if depth_ == 2:
-            return qml.probs(wires=[1, 3, 5, 7])
-        if depth_ == 3:
-            return qml.probs(wires=[3, 7])
+    # if depth_ == 1:
+    #     return qml.probs(wires=l)
+    # if depth_ == 2:
+    #     return qml.probs(wires=[1, 3, 5, 7])
+    # if depth_ == 3:
+    #     return qml.probs(wires=[3, 7])
+
+    return qml.probs(wires=[3, 7])
 
 
 class Hierarchical(nn.Module):

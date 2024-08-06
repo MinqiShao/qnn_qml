@@ -47,6 +47,28 @@ def ccqc_circuit(n_qubits, depth, weights, weights_1, weights_2):
         CCQC_block(d, n_qubits, weights, weights_1, weights_2)
 
 
+########## DRQNN ##########
+def rotation_layer(q, weights, x):
+    z = weights[:, 0]*x + weights[:, 1]
+    qml.RX(z[0], wires=q)
+    qml.RY(z[1], wires=q)
+    qml.RZ(z[2], wires=q)
+
+def entangle_layer(n_qubits):
+    for q in range(n_qubits-1):
+        qml.CZ((q, q+1))
+    if n_qubits != 2:
+        qml.CZ((n_qubits-1, 0))
+
+def DRQNN_circuit(x, weights, depth, n_qubits, n_features):
+    for l in range(depth):
+        for f in range(n_features // 3):
+            for q in range(n_qubits):
+                rotation_layer(q, weights[l][q][3*f:3*(f+1)], x[3*f:3*(f+1)])
+        if l < depth - 1:
+            entangle_layer(n_qubits)
+
+
 ########## Single/Multi Encoding ##########
 def pure_single_circuit(n_qubits, depth, weights):
     for layer in range(depth):
@@ -223,7 +245,8 @@ weight_dict = {'classical': ['conv.weight', 'conv.bias', 'fc1.weight', 'fc1.bias
                'ccqc': ['ql.weights', 'ql.weights_1', 'ql.weights_2'],
                'pure_single': 'qc.ql1.weights',
                'pure_multi': 'qc.ql1.weights',
-               'hier': 'ql.weights'}
+               'hier': 'ql.weights',
+               'drqnn': 'ql.weights'}
 block_dict = {'qcl': [1, 2, 3, 4, 5],  # 'block1', 'block2', 'block3', 'block4', 'block5'
               'ccqc': [1, 2, 3, 4, 5],
               'pure_qcnn': [0, 1, 2],  # 0: whole, 1: conv1+pool1, 2: conv1+pool1+conv2+pool2
@@ -235,13 +258,15 @@ depth_dict = {'qcl': 5,  # 'block1', 'block2', 'block3', 'block4', 'block5'
               'pure_qcnn': 2,  # max value in block_dict
               'hier': 3,
               'pure_single': 2,
-              'pure_multi': 1}
+              'pure_multi': 1,
+              'drqnn': 2}
 qubit_dict = {'qcl': 10,
               'ccqc': 10,
               'pure_qcnn': 10,
               'pure_single': 4,
               'pure_multi': 4,
-              'hier': 10}
+              'hier': 10,
+              'drqnn': 4}
 qubit_block_dict = {'qcl': [10]*5,
               'ccqc': [10]*5,
               'pure_qcnn': [10]*3,

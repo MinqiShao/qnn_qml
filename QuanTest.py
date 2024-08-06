@@ -33,13 +33,15 @@ def gen_adv():
     t_sum = 0
     QEA_sum = 0
 
-    p = os.path.join(conf.analysis_dir, 'QuanTest', conf.dataset, conf.structure, str(conf.class_idx))
+    model_n = 'hier_' + conf.hier_u if conf.structure == 'hier' else conf.structure
+    p = os.path.join(conf.analysis_dir, 'QuanTest', conf.dataset, model_n, str(conf.class_idx))
     if not os.path.exists(p):
         os.makedirs(p)
     p_ = os.path.join(p, 'log.txt')
     log = Log(p_)
 
     for i in range(test_x.shape[0]):
+        if i < 72: continue
         log(f'Start for {i}th img...')
         x = torch.flatten(test_x[i], start_dim=0)
         x.requires_grad_(True)
