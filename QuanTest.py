@@ -41,7 +41,6 @@ def gen_adv():
     log = Log(p_)
 
     for i in range(test_x.shape[0]):
-        if i < 72: continue
         log(f'Start for {i}th img...')
         x = torch.flatten(test_x[i], start_dim=0)
         x.requires_grad_(True)

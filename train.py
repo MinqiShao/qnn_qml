@@ -110,19 +110,19 @@ def train(model_type=conf.structure, class_idx=conf.class_idx, e_type=conf.encod
         test_acc.append(test_acc_ * 100)
         log('Test: Loss: {:.6f}, Acc: {:.6f}'.format(loss.item(), test_acc_))
 
-        if test_acc_ > best_acc:
-            best_acc = test_acc_
+        if (train_acc_ + test_acc_) > best_acc:
+            best_acc = train_acc_ + test_acc_
             log('save best!!')
             torch.save(model.state_dict(), model_save_path)
 
-    pict_dir = os.path.join(conf.visual_dir, 'train_process', conf.dataset, model_type, str(class_idx))
-    if not os.path.exists(pict_dir):
-        os.makedirs(pict_dir)
-    train_line(e_l=epoch_l, train_l=train_loss, test_l=test_loss, type_='loss',
-               save_path=os.path.join(pict_dir, 'train_loss.png'))
-    train_line(e_l=epoch_l, train_l=train_acc, test_l=test_acc, type_='accuracy',
-               save_path=os.path.join(pict_dir, 'train_acc.png'))
-    print(f'training process imgs have saved to {pict_dir}')
+    # pict_dir = os.path.join(conf.visual_dir, 'train_process', conf.dataset, model_type, str(class_idx))
+    # if not os.path.exists(pict_dir):
+    #     os.makedirs(pict_dir)
+    # train_line(e_l=epoch_l, train_l=train_loss, test_l=test_loss, type_='loss',
+    #            save_path=os.path.join(pict_dir, 'train_loss.png'))
+    # train_line(e_l=epoch_l, train_l=train_acc, test_l=test_acc, type_='accuracy',
+    #            save_path=os.path.join(pict_dir, 'train_acc.png'))
+    # print(f'training process imgs have saved to {pict_dir}')
 
 
 

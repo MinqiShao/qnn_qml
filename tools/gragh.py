@@ -1,7 +1,9 @@
 import matplotlib.pyplot as plt
+import numpy as np
 from sklearn.manifold import TSNE
 import seaborn as sns
 import pandas as pd
+from scipy.stats import entropy
 
 
 def train_line(e_l, train_l, test_l, save_path, type_='loss'):
@@ -98,3 +100,66 @@ def dot_graph(data, num_per_class, save_path):
     plt.tight_layout()
     plt.show()
     plt.savefig(save_path)
+
+
+def multi_heatmap_graph(data, k, save_path, l=0, u=1):
+    labels = ['|00>', '|01>', '|10>', '|11>']
+    #labels = ['|0>', '|1>']
+    data_list = []
+    ent = np.zeros((len(data)))
+    bins = np.linspace(l, u, k + 1)
+    for idx, d in enumerate(data):
+        hist, _ = np.histogram(d, bins=bins)
+        ent[idx] = entropy(hist/hist.sum())
+        data_list.append(hist)
+
+    fig, axes = plt.subplots(len(data_list), 1, figsize=(k/2, len(data_list)))
+    for ax, data, label in zip(axes, data_list, labels):
+        heatmap = ax.imshow(np.array([data]), cmap="Blues")
+
+        # Set the x-axis labels at the edges
+        xticks = np.arange(-0.5, len(data), k / 10)
+        xticklabels = [f'{x:.1f}' for x in bins]
+        xticklabels_ = [xticklabels[int(i)] for i in xticks + 0.5]
+        ax.set_xticks(xticks)
+        ax.set_xticklabels(xticklabels_)
+
+        ax.set_yticks([])
+
+        # Add text annotations
+        for i in range(len(data)):
+            ax.text(i, 0, str(data[i]), ha='center', va='center', color='black')
+
+        # Add y-axis label
+        ax.set_ylabel(label, rotation=0, ha='left', va='center', fontsize=12, fontweight='bold', labelpad=40)
+
+        ax.set_aspect('equal')
+    plt.tight_layout()
+    plt.show()
+    plt.savefig(save_path)
+
+    return ent
+
+def single_heatmap_graph(data, k, save_path, l=0, u=1):
+    # ent
+    bins = np.linspace(l, u, k + 1)
+    hist, _ = np.histogram(data, bins=bins)  # 统计次数
+
+    fig, ax = plt.subplots(figsize=(k/2, 1))
+    heatmap = ax.imshow(np.array([hist]), cmap="Blues", aspect='auto')
+
+    xticks = np.arange(-0.5, len(hist), k/10)
+    xticklabels = [f'{x:.2f}' for x in bins]
+    xticklabels_ = [xticklabels[int(i)] for i in xticks+0.5]
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(xticklabels_)
+    ax.set_yticks([])
+    for i in range(len(hist)):
+        ax.text(i, 0, str(hist[i]), ha='center', va='center', color='black')
+    plt.tight_layout()
+    plt.show()
+    plt.savefig(save_path)
+
+    ent = entropy(hist/hist.sum())
+
+    return ent

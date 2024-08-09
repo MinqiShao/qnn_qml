@@ -38,16 +38,16 @@ def QCNN_conv1(n_qubits, weights_conv1):
         qml.CNOT(wires=[i, i + 1])
         qml.U3(weights_conv1[i, 9], weights_conv1[i, 10], weights_conv1[i, 11], wires=i)
         qml.U3(weights_conv1[i, 12], weights_conv1[i, 13], weights_conv1[i, 14], wires=i + 1)
-    qml.U3(weights_conv1[7, 0], weights_conv1[7, 1], weights_conv1[7, 2], wires=0)
-    qml.U3(weights_conv1[7, 3], weights_conv1[7, 4], weights_conv1[7, 5], wires=n_qubits - 1)
+    qml.U3(weights_conv1[n_qubits - 1, 0], weights_conv1[n_qubits - 1, 1], weights_conv1[n_qubits - 1, 2], wires=0)
+    qml.U3(weights_conv1[n_qubits - 1, 3], weights_conv1[n_qubits - 1, 4], weights_conv1[n_qubits - 1, 5], wires=n_qubits - 1)
     qml.CNOT(wires=[0, n_qubits - 1])
-    qml.RY(weights_conv1[7, 6], wires=0)
-    qml.RZ(weights_conv1[7, 7], wires=n_qubits - 1)
+    qml.RY(weights_conv1[n_qubits - 1, 6], wires=0)
+    qml.RZ(weights_conv1[n_qubits - 1, 7], wires=n_qubits - 1)
     qml.CNOT(wires=[n_qubits - 1, 0])
-    qml.RY(weights_conv1[7, 8], wires=0)
+    qml.RY(weights_conv1[n_qubits - 1, 8], wires=0)
     qml.CNOT(wires=[0, n_qubits - 1])
-    qml.U3(weights_conv1[7, 9], weights_conv1[7, 10], weights_conv1[7, 11], wires=0)
-    qml.U3(weights_conv1[7, 12], weights_conv1[7, 13], weights_conv1[7, 14], wires=n_qubits - 1)
+    qml.U3(weights_conv1[n_qubits - 1, 9], weights_conv1[n_qubits - 1, 10], weights_conv1[n_qubits - 1, 11], wires=0)
+    qml.U3(weights_conv1[n_qubits - 1, 12], weights_conv1[n_qubits - 1, 13], weights_conv1[n_qubits - 1, 14], wires=n_qubits - 1)
 
 def QCNN_pool1(n_qubits, weights_pool1):
     for idx, i in enumerate(range(0, n_qubits, 2)):
@@ -73,14 +73,17 @@ def QCNN_pool2(n_qubits, weights_pool2):
         qml.CRZ(weights_pool2[idx, 0], wires=[i + 2, i])
         qml.PauliX(wires=i + 2)
         qml.CRX(weights_pool2[idx, 1], wires=[i + 2, i])
+    qml.CRZ(weights_pool2[(n_qubits - 2)//4, 0], wires=[n_qubits - 2, 0])
+    qml.PauliX(wires=n_qubits - 2)
+    qml.CRX(weights_pool2[(n_qubits - 2)//4, 1], wires=[n_qubits - 2, 0])
 
 def QCNN_fc(weights_fc):
     qml.CNOT(wires=[0, 4])
-    qml.CNOT(wires=[2, 4])
-    qml.CNOT(wires=[4, 0])
+    qml.CNOT(wires=[4, 8])
+    qml.CNOT(wires=[8, 0])
     qml.RX(weights_fc[0], wires=0)
-    qml.RX(weights_fc[1], wires=2)
-    qml.RX(weights_fc[2], wires=4)
+    qml.RX(weights_fc[1], wires=4)
+    qml.RX(weights_fc[2], wires=8)
 
 
 def CCQC_block(d, n_qubits, weights, weights_1, weights_2):

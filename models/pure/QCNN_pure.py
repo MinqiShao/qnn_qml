@@ -41,7 +41,7 @@ def circuit_state(inputs, weights_conv1, weights_conv2, weights_pool1, weights_p
 
 
 @qml.qnode(dev, interface='torch')
-def circuit_prob(inputs, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc, depth=0):
+def circuit_prob(inputs, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc, depth=0, qubit_l=[0,4,8]):
     AmplitudeEmbedding(inputs, wires=range(n_qubits), normalize=True, pad_with=0)
     if depth == 0:
         pure_qcnn_block1(n_qubits, weights_conv1, weights_pool1)
@@ -49,7 +49,7 @@ def circuit_prob(inputs, weights_conv1, weights_conv2, weights_pool1, weights_po
         pure_qcnn_block2(n_qubits, weights_conv1, weights_conv2, weights_pool1, weights_pool2)
     elif depth == 2:
         pure_qcnn_circuit(n_qubits, weights_conv1, weights_conv2, weights_pool1, weights_pool2, weights_fc)
-    return qml.probs(wires=l)
+    return qml.probs(wires=qubit_l)
 
 
 @qml.qnode(dev, interface='torch')
@@ -85,7 +85,7 @@ class QCNN_classifier(nn.Module):
         self.cir = qml.qnn.TorchLayer(circuit, {'weights_conv1': (n_qubits, 15),
                                                 'weights_conv2': (math.ceil((n_qubits - 2) / 2), 15),
                                                 'weights_pool1': (math.ceil(n_qubits / 2), 2),
-                                                'weights_pool2': (math.ceil((n_qubits - 2) / 4), 2),
+                                                'weights_pool2': (math.ceil(n_qubits / 4), 2),
                                                 'weights_fc': (3,)})
 
     def forward(self, x, y):
@@ -98,9 +98,9 @@ class QCNN_classifier(nn.Module):
         x = torch.flatten(x, start_dim=1)
         x = self.cir(x)
         if self.num_classes == 2:
-            return x[:, torch.tensor([0, 2])]
+            return x[:, torch.tensor([0, 4])]
         else:
-            return x[:, torch.tensor([0, 2, 4])]
+            return x[:, torch.tensor([0, 4, 8])]
 
     def visualize_circuit(self, x, weights, save_path):
         import matplotlib.pyplot as plt

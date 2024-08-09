@@ -17,7 +17,7 @@ l = []
 for q in range(n_qubits):
     l.append(q)
 dev = qml.device('default.qubit', wires=n_qubits)
-U = None
+U = 'U_SO4'
 
 def param_num(u):
     num = 0
@@ -59,14 +59,10 @@ def Pooling_ansatz3(*params, wires): #3 params
 
 @qml.qnode(dev, interface='torch')
 def circuit(inputs, weights):
-    """
-    :param weights: (U_params*7, )
-    :return:
-    """
     AmplitudeEmbedding(inputs, wires=range(n_qubits), normalize=True, pad_with=0)
-    Hierarchical_circuit('U_TTN', weights)
+    Hierarchical_circuit(U, weights)
 
-    return qml.probs(wires=7)  # (bs, 2)
+    return qml.probs(wires=9)  # (bs, 2)
 
 
 @qml.qnode(dev, interface='torch')
@@ -78,7 +74,7 @@ def circuit_state(inputs, weights, u=U, depth_=3, exec_=True):
 
 
 @qml.qnode(dev, interface='torch')
-def circuit_prob(inputs, weights, u=U, depth_=3):
+def circuit_prob(inputs, weights, u=U, depth_=3, qubit_l=[9]):
     AmplitudeEmbedding(inputs, wires=range(n_qubits), normalize=True, pad_with=0)
     Hierarchical_circuit(u, weights, depth_)
 
@@ -87,9 +83,9 @@ def circuit_prob(inputs, weights, u=U, depth_=3):
     # if depth_ == 2:
     #     return qml.probs(wires=[1, 3, 5, 7])
     # if depth_ == 3:
-    #     return qml.probs(wires=[3, 7])
+    #     return qml.probs(wires=[5, 9])
 
-    return qml.probs(wires=[3, 7])
+    return qml.probs(wires=qubit_l)
 
 
 class Hierarchical(nn.Module):

@@ -65,7 +65,7 @@ def circuit_pred(x, params, conf):
     return o, pred
 
 
-def block_out(x, conf, params, depth=1, exec_=True):
+def block_out(x, conf, params, qubit_l=[], depth=1, exec_=True):
     # 单个样本
     if conf.structure == 'qcl':
         out = QCL.circuit_prob(x, params, depth_=depth, exec_=exec_)
