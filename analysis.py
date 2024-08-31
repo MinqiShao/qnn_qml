@@ -8,6 +8,7 @@ from tools.data_loader import load_part_data, load_adv_imgs
 from models.circuits import depth_dict
 from config import *
 from tools.entanglement import *
+from tools.internal import block_out
 
 from tools import Log
 
@@ -60,43 +61,19 @@ def analyse_qinfo(c_n='MW'):
     log('Output state: {}'.format(out_list.tolist()))
 
 
-def compare_adv():
-    print('Compare entanglement between original, classical adv and QuanTest samples')
+def compare_adv(t='ent'):
+    print('Compare between original, classical adv and QuanTest samples')
     print(f'dataset: {conf.dataset}, model: {conf.structure}, class: {conf.class_idx}, adv: {conf.attack}')
-    # qcl
     params, model = load_params_from_path(conf, device)
     # classical adv data
-    p = os.path.join(conf.analysis_dir, 'AdvAttack', conf.dataset, conf.structure, str(conf.class_idx), conf.attack)
-    idx_list = []
-    img_list = []
-    transform = transforms.Compose([transforms.ToTensor()])
-    for file in os.listdir(p):
-        if file.endswith('.png'):
-            idx = int(file.split('_')[0])
-            idx_list.append(idx)  # img idx
-            img_p = os.path.join(p, file)
-            img = Image.open(img_p).convert('L')
-            img = transform(img)
-            img_list.append(img)
-    idx_list = torch.tensor(idx_list)
+    idx_list, img_list = load_adv_imgs(conf)
 
     # original data
     test_x, test_y = load_part_data(conf, num_data=conf.num_test)
 
     # QuanTest imgs
-    p = os.path.join(conf.analysis_dir, 'QuanTest', conf.dataset, conf.structure, str(conf.class_idx))
-    quan_list = []
-    quan_idx_list = []
-    transform = transforms.Compose([transforms.ToTensor()])
-    for file in os.listdir(p):
-        if file.endswith('.png'):
-            idx = int(file.split('_')[0])
-            quan_idx_list.append(idx)  # img idx
-            img_p = os.path.join(p, file)
-            img = Image.open(img_p).convert('L')
-            img = transform(img)
-            quan_list.append(img)
-    quan_idx_list = torch.tensor(quan_idx_list)
+    conf.attack = 'QuanTest'
+    quan_idx_list, quan_list = load_adv_imgs(conf)
 
     common_idx = []
     ori_img = []
@@ -104,35 +81,45 @@ def compare_adv():
     q_img = []
     for i, idx in enumerate(idx_list):
         a = torch.where(quan_idx_list == idx)[0]
-        if a.shape[0] == 0:
-            continue
+        # if a.shape[0] == 0:
+        #     continue
         common_idx.append(idx)
         ori_img.append(test_x[idx])
-        c_img.append(img_list[i])
-        q_img.append(quan_list[a])
+        # c_img.append(img_list[i])
+        # q_img.append(quan_list[a])
 
-    # for all imgs in img_list (they success attack classical)
     d = depth_dict[conf.structure]
-    in_o, out_o, chan_o = MW(ori_img, params, conf, d)
-    in_c, out_c, chan_c = MW(c_img, params, conf, d)
-    in_q, out_q, chan_q = MW(q_img, params, conf, d)
-    # for i in range(len(common_idx)):
-    #     print(f'---{common_idx[i]} img---')
-    #     print(f'ori in: {in_o[i]}, adv in: {in_c[i]}, QuanTest: {in_q[i]}')
-    #     print(f'ori out: {out_o[i]}, adv out: {out_c[i]}, QuanTest: {out_q[i]}')
+    if t == 'ent':
+        # 比较ori、adv、QuanTest的纠缠及纠缠差
+        in_o, out_o, chan_o = MW(ori_img, params, conf, d)
+        # in_c, out_c, chan_c = MW(c_img, params, conf, d)
+        # in_q, out_q, chan_q = MW(q_img, params, conf, d)
 
-    # for imgs that attack classical and qnn successfully
-    now_y_q = model.predict(torch.stack(c_img)).detach().argmax(axis=1)
-    q = torch.where(test_y[torch.tensor(common_idx)] != now_y_q)[0]
-    print(f'{q.shape[0]}/{len(common_idx)} adv imgs attacking qnn successfully')
-    for i in q:
-        print(f'---{common_idx[i]} img---')
-        print(f'ori in: {in_o[i]}, adv in: {in_c[i]}, QuanTest: {in_q[i]}')
-        print(f'ori out: {out_o[i]}, adv out: {out_c[i]}, QuanTest: {out_q[i]}')
-        print(f'ori chan: {chan_o[i]}, adv chan: {chan_c[i]}, QuanTest: {chan_q[i]}')
+        # for imgs that attack classical and qnn successfully
+        # now_y_q = model.predict(torch.stack(c_img)).detach().argmax(axis=1)
+        # q = torch.where(test_y[torch.tensor(common_idx)] != now_y_q)[0]
+        # print(f'{q.shape[0]}/{len(common_idx)} adv imgs attacking qnn successfully')
+        for i, idx in enumerate(common_idx):
+            # print(f'---{idx} img---')
+            # print(f'ori in: {in_o[i]}, adv in: {in_c[i]}, QuanTest: {in_q[i]}')
+            # print(f'ori out: {out_o[i]}, adv out: {out_c[i]}, QuanTest: {out_q[i]}')
+            # print(f'ori chan(%): {chan_o[i]/in_o[i]}, adv chan: {chan_c[i]/in_o[i]}, QuanTest: {chan_q[i]/in_o[i]}')
+            print(f'ori in: {round(in_o[i].item(), 5)}, ori out: {round(out_o[i].item(), 5)}, '
+                  f'ori chan(%): {round((chan_o[i] / in_o[i]).item(), 5)*100}')
+
+    if t == 'init_s':
+        # 比较ori和adv样本在encoding后的有效基态（prob不为0）的数量对比
+        for o, c, q in zip(ori_img, c_img, q_img):
+            ori_state = block_out(torch.flatten(o), conf, params, d, exec_=False)
+            adv_state = block_out(torch.flatten(c), conf, params, d, exec_=False)
+            q_state = block_out(torch.flatten(q), conf, params, d, exec_=False)
+            o_n = torch.sum(ori_state > 1e-16).item()
+            c_n = torch.sum(adv_state > 1e-16).item()
+            q_n = torch.sum(q_state > 1e-16).item()
+            print(f'{o_n}/{c_n}/{q_n}, total: {ori_state.shape[0]}')
 
 
 
 # analyse_qinfo(c_n='MW')
-visualize_circuit()
-#compare_adv()
+#visualize_circuit()
+compare_adv(t='ent')

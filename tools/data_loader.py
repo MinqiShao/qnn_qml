@@ -62,6 +62,19 @@ def filter_data(data_set, class_idx=[0, 1], scale=1.0):
 
     return idx
 
+def sample_data(x, y, class_idx=[0, 1], scale=0.1):
+    num_class = len(class_idx)
+    idx = torch.tensor([], dtype=torch.long)
+    for i in range(num_class):
+        c_idx = torch.where(y == class_idx[i])[0]
+        if type(scale) is int:
+            c_idx = c_idx[:scale]
+        else:
+            c_idx = c_idx[:int(len(c_idx) * scale)]
+        print(f'{len(c_idx)} data from class {class_idx[i]}')
+        idx = torch.cat((idx, c_idx))
+    return x[idx], y[idx]
+
 
 def load_part_data(conf, train_=False, num_data=100):
     name = conf.dataset
@@ -112,3 +125,26 @@ def load_adv_imgs(conf):
             img_list.append(img)
     print(f'load {len(img_list)} adv images from {p}')
     return torch.tensor(idx_list), torch.stack(img_list)
+
+
+def load_correct_data(conf, model, num_data=100):
+    # 挑选被模型预测正确的样本
+    name = conf.dataset
+    dir = conf.data_dir
+    class_idx = conf.class_idx
+    if name == 'mnist':
+        d_set = datasets.MNIST(dir, train=False, download=True)
+    elif name == 'fashion_mnist':
+        d_set = datasets.FashionMNIST(dir, train=False, download=True)
+
+    scaled_test_idx = filter_data(d_set, class_idx, 0.2)
+    d_set.targets = transform_labels(d_set.targets.clone(), class_idx)
+
+    x = d_set.data[scaled_test_idx].clone().float() / 255.0
+    y = d_set.targets[scaled_test_idx].clone()
+
+    y_preds = model.predict(x).argmax(1)
+    correct_idx = torch.where(y == y_preds)[0]
+    x, y = x[correct_idx], y[correct_idx]
+
+    return sample_data(x, y, class_idx, scale=num_data)

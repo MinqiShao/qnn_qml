@@ -12,7 +12,7 @@ from sklearn.metrics import accuracy_score
 from tqdm import tqdm
 
 conf = get_arguments()
-epochs = 5
+epochs = 10
 batch_size = 64
 lr = 0.01
 milestones = [5, 10, 15, 20]

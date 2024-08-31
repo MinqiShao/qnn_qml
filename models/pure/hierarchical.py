@@ -17,7 +17,7 @@ l = []
 for q in range(n_qubits):
     l.append(q)
 dev = qml.device('default.qubit', wires=n_qubits)
-U = 'U_SO4'
+U = 'U_SU4'
 
 def param_num(u):
     num = 0
@@ -74,7 +74,7 @@ def circuit_state(inputs, weights, u=U, depth_=3, exec_=True):
 
 
 @qml.qnode(dev, interface='torch')
-def circuit_prob(inputs, weights, u=U, depth_=3, qubit_l=[9]):
+def circuit_prob(inputs, weights, u=U, depth_=3, qubit_l=l):
     AmplitudeEmbedding(inputs, wires=range(n_qubits), normalize=True, pad_with=0)
     Hierarchical_circuit(u, weights, depth_)
 

@@ -41,13 +41,18 @@ def gen_adv():
     log = Log(p_)
 
     for i in range(test_x.shape[0]):
+        if i < 125: continue
         log(f'Start for {i}th img...')
         x = torch.flatten(test_x[i], start_dim=0)
         x.requires_grad_(True)
 
         in_state, out_state = in_out_state(x, conf, params, d)
-        ori_outputs, _ = circuit_pred(x, params, conf)
+        ori_outputs, now_y = circuit_pred(x, params, conf)
         ori_outputs = torch.tensor(ori_outputs)
+
+        # if now_y != test_y[i]:  # 原本预测错误
+        #     log('This image is not correctly predicted originally.')
+        #     continue
 
         iters = 0
         while True:
@@ -91,6 +96,8 @@ def gen_adv():
                 break
 
             if iters == 500:
+                adv_img = x.reshape(1, 28, 28)
+                save_image(adv_img, os.path.join(p, str(i) + '_' + str(test_y[i].item()) + '_' + str(new_y.item()) + '.png'))
                 break
     log(f'!!generated {adv_num} adv img out of {test_x.shape[0]} img!')
 

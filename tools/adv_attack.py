@@ -5,6 +5,14 @@ import torch.nn.functional as F
 from tqdm import tqdm
 
 
+def random_noise(imgs, k=0.1):
+    # noise = torch.rand(imgs.shape[2:])
+    noise = torch.randn(imgs.shape[2:])
+    norm_noise = (noise - noise.min()) / (noise.max() - noise.min())
+    adv_imgs = torch.clamp(imgs + norm_noise * k, 0., 1.)
+    return adv_imgs
+
+
 def DLFuzz2(now_outputs, ori_outputs, w):
     """
     2分类

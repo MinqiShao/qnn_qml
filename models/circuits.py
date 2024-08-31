@@ -48,25 +48,48 @@ def ccqc_circuit(n_qubits, depth, weights, weights_1, weights_2):
 
 
 ########## DRQNN ##########
-def rotation_layer(q, weights, x):
-    z = weights[:, 0]*x + weights[:, 1]
-    qml.RX(z[0], wires=q)
-    qml.RY(z[1], wires=q)
-    qml.RZ(z[2], wires=q)
-
-def entangle_layer(n_qubits):
-    for q in range(n_qubits-1):
-        qml.CZ((q, q+1))
-    if n_qubits != 2:
-        qml.CZ((n_qubits-1, 0))
+# def rotation_layer(q, weights, x):
+#     z = weights[:, 0]*x + weights[:, 1]
+#     qml.RX(z[0], wires=q)
+#     qml.RY(z[1], wires=q)
+#     qml.RZ(z[2], wires=q)
+#
+# def entangle_layer(n_qubits):
+#     for q in range(n_qubits-1):
+#         qml.CZ((q, q+1))
+#     if n_qubits != 2:
+#         qml.CZ((n_qubits-1, 0))
 
 def DRQNN_circuit(x, weights, depth, n_qubits, n_features):
     for l in range(depth):
-        for f in range(n_features // 3):
-            for q in range(n_qubits):
-                rotation_layer(q, weights[l][q][3*f:3*(f+1)], x[3*f:3*(f+1)])
-        if l < depth - 1:
-            entangle_layer(n_qubits)
+        for q in range(n_qubits):
+            remain_dim = n_features % 3
+            tuple_dim = n_features - remain_dim  # 可以整除3的维度数
+            for i in range(0, tuple_dim, 3):
+                dim1 = weights[l][q][i][0]*x[i] + weights[l][q][i][1]
+                dim2 = weights[l][q][i+1][0]*x[i+1] + weights[l][q][i+1][1]
+                dim3 = weights[l][q][i+2][0]*x[i+2] + weights[l][q][i+2][1]
+                qml.Rot(dim1, dim2, dim3, wires=q)
+            if remain_dim == 1:
+                dim1 = weights[l][q][tuple_dim][0] * x[tuple_dim] + weights[l][q][tuple_dim][1]
+                dim2, dim3 = 0.0, 0.0
+                qml.Rot(dim1, dim2, dim3, wires=q)
+            elif remain_dim == 2:
+                dim1 = weights[l][q][tuple_dim][0] * x[tuple_dim] + weights[l][q][tuple_dim][1]
+                dim2 = weights[l][q][tuple_dim+1][0] * x[tuple_dim+1] + weights[l][q][tuple_dim+1][1]
+                dim3 = 0.0
+                qml.Rot(dim1, dim2, dim3, wires=q)
+        if n_qubits >= 2:
+            for q in range(n_qubits-1):
+                qml.CNOT(wires=[q, q+1])
+        if n_qubits >= 3:
+            qml.CNOT(wires=[n_qubits-1, 0])
+
+    # for l in range(depth):
+    #     for f in range(n_features // 3):
+    #         for q in range(n_qubits):
+    #             rotation_layer(q, weights[l][q][3*f:3*(f+1)], x[3*f:3*(f+1)])
+    #     entangle_layer(n_qubits)
 
 
 ########## Single/Multi Encoding ##########
@@ -235,7 +258,7 @@ def Hierarchical_structure(U, params, U_params, depth_=3):
         U(param9, wires=[7, 9])
     if depth_ > 2:  # depth 3
         # 3rd Layer
-        U(param10, wires=[3, 7])
+        U(param10, wires=[5, 9])
 
 
 ########## dict ##########
@@ -266,12 +289,24 @@ qubit_dict = {'qcl': 10,
               'pure_single': 4,
               'pure_multi': 4,
               'hier': 10,
-              'drqnn': 4}
+              'drqnn': 3}
 qubit_block_dict = {'qcl': [10]*5,
               'ccqc': [10]*5,
               'pure_qcnn': [10]*3,
               'pure_single': [4]*2,
               'pure_multi': [4],
               'hier': [10, 4, 2]}
+cla_qubit_dict = {
+    'qcl': [0, 1],
+    'ccqc': [0, 1],
+    'pure_qcnn': [0, 4],
+    'hier': [9]
+}
+aux_qubit_dict = {
+    'qcl': [2, 3, 4, 5, 6, 7, 8, 9],
+    'ccqc': [2, 3, 4, 5, 6, 7, 8, 9],
+    'pure_qcnn': [1, 2, 3, 5, 6, 7, 8, 9],
+    'hier': [0, 1, 2, 3, 4, 5, 6, 7, 8]
+}
 
 

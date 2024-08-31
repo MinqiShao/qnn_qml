@@ -12,11 +12,11 @@ def get_arguments():
     parser.add_argument('--analysis_dir', type=str, default='../../shaominqi/ns219x/analysis')
     parser.add_argument('--visual_dir', type=str, default='../../shaominqi/ns219x/visual_results')
 
-    parser.add_argument('--dataset', type=str, default='mnist', choices=['mnist', 'fashion_mnist', 'emnist'])
+    parser.add_argument('--dataset', type=str, default='mnist', choices=['mnist', 'fashion_mnist'])
     parser.add_argument('--structure', type=str, default='classical', choices=['classical',
                                                                         'qcl', 'ccqc', 'pure_qcnn',
                                                                         'pure_single', 'pure_multi',
-                                                                        'hier', 'drqnn'])
+                                                                        'hier'])
     parser.add_argument('--hier_u', type=str, default='U_SU4', choices=['U_SU4', 'U_TTN', 'U_5', 'U_6', 'U_9', 'U_13', 'U_14', 'U_15', 'U_SO4'])
     parser.add_argument('--encoding', type=str, default='amplitude', choices=['amplitude', 'angle_y', 'angle_xyz',
                                                                               'hde', 'hae'])
@@ -27,12 +27,13 @@ def get_arguments():
     # analysis
     parser.add_argument('--criteria', type=str, default='prob', choices=['prob', 'ent'])
     # coverage
-    parser.add_argument('--num_test', type=int, default=10)
+    parser.add_argument('--num_test', type=int, default=50)
     parser.add_argument('--num_train', type=int, default=100)
-    parser.add_argument('--cov_cri', type=str, default='prob', choices=['prob', 'exp', 'ent'])
+    parser.add_argument('--cov_cri', type=str, default='prob', choices=['prob', 'ent'])
     parser.add_argument('--with_adv', action='store_true')
     # gen adv
-    parser.add_argument('--attack', type=str, default='DLFuzz', choices=['DLFuzz', 'FGSM', 'BIM', 'CW', 'QuanTest', 'DIFGSM', 'JSMA'])
+    parser.add_argument('--attack', type=str, default='DLFuzz', choices=['ori', 'DLFuzz', 'FGSM', 'BIM', 'CW', 'QuanTest', 'DIFGSM', 'JSMA', 'random'])
+    parser.add_argument('--cri', type=str, default='ksc', choices=['ksc', 'scc', 'tsc', 'kec'])
     return parser.parse_args()
 
 

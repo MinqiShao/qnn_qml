@@ -25,6 +25,9 @@ if not os.path.exists(p_c):
 def gen_adv():
     test_x, test_y = load_part_data(conf, num_data=conf.num_test)
     params, model = load_params_from_path(conf, device)
+    # total_params = sum(p.numel() for p in model.parameters())
+    # print(f"Total number of parameters: {total_params}")
+    # return
 
     print(f'Dataset: {conf.dataset}, model: {model_n}, attack: {conf.attack}')
     if conf.attack == 'FGSM':
@@ -36,9 +39,13 @@ def gen_adv():
     elif conf.attack == 'CW':
         adv_imgs = CW(model, test_x, test_y, c=10, steps=500)
     elif conf.attack == 'DIFGSM':
-        adv_imgs = DIFGSM(model, test_x, test_y, eps=32/255, alpha=4/255, steps=100)
+        adv_imgs = DIFGSM(model, test_x, test_y, eps=64/255, alpha=4/255, steps=100)
     elif conf.attack == 'JSMA':
         adv_imgs = JSMA(model, test_x, test_y, num_class=len(conf.class_idx))
+    elif conf.attack == 'random':
+        adv_imgs = random_noise(test_x, k=0.2)
+    elif conf.attack == 'ori':
+        adv_imgs = test_x
 
     now_y = model.predict(adv_imgs).detach().numpy().argmax(axis=1).tolist()
     now_acc = accuracy_score(test_y.numpy().tolist(), now_y)
@@ -48,7 +55,7 @@ def gen_adv():
     for i, a in enumerate(adv_imgs):
         if now_y[i] != test_y[i]:
             gen_num_c += 1
-            save_image(a.detach(), os.path.join(p_c, str(i) + '_' + str(test_y[i].item()) + '_' + str(now_y[i]) + '.png'))
+        save_image(a.detach(), os.path.join(p_c, str(i) + '_' + str(test_y[i].item()) + '_' + str(now_y[i]) + '.png'))
     print(f'generate {gen_num_c} adv imgs!!')
 
 
