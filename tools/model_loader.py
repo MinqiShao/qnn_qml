@@ -18,8 +18,6 @@ def load_model(conf, device, data_size=28, e_type='amplitude'):
             model = SingleEncoding(num_classes=num_classes, img_size=data_size)
         elif model_type == 'pure_multi':
             model = MultiEncoding(num_classes=num_classes, img_size=data_size)
-        elif model_type == 'inception':
-            model = InceptionNet(num_classes=num_classes)
         elif model_type == 'hier':
             assert num_classes == 2
             model = Hierarchical(embedding_type=e_type, u=conf.hier_u)
