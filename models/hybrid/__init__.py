@@ -1,3 +1,0 @@
-
-from .inception import InceptionNet
-
