@@ -113,18 +113,21 @@ def load_adv_imgs(conf):
     else:
         p = os.path.join(conf.analysis_dir, 'AdvAttack', conf.dataset, model_n, str(conf.class_idx), conf.attack)
     idx_list = []
+    ori_y_list = []
     img_list = []
     transform = transforms.Compose([transforms.ToTensor()])
     for file in os.listdir(p):
         if file.endswith('.png'):
             idx = int(file.split('_')[0])
+            ori_y = int(file.split('_')[1])
             idx_list.append(idx)  # img idx
+            ori_y_list.append(ori_y)
             img_p = os.path.join(p, file)
             img = Image.open(img_p).convert('L')
             img = transform(img)
             img_list.append(img)
     print(f'load {len(img_list)} adv images from {p}')
-    return torch.tensor(idx_list), torch.stack(img_list)
+    return torch.tensor(idx_list), torch.stack(img_list), torch.tensor(ori_y_list)
 
 
 def load_correct_data(conf, model, num_data=100):
@@ -141,6 +144,7 @@ def load_correct_data(conf, model, num_data=100):
     d_set.targets = transform_labels(d_set.targets.clone(), class_idx)
 
     x = d_set.data[scaled_test_idx].clone().float() / 255.0
+    x = x.unsqueeze(-1)
     y = d_set.targets[scaled_test_idx].clone()
 
     y_preds = model.predict(x).argmax(1)

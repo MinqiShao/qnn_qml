@@ -33,7 +33,7 @@ def get_arguments():
     parser.add_argument('--with_adv', action='store_true')
     # gen adv
     parser.add_argument('--attack', type=str, default='DLFuzz', choices=['ori', 'DLFuzz', 'FGSM', 'BIM', 'CW', 'QuanTest', 'DIFGSM', 'JSMA', 'random'])
-    parser.add_argument('--cri', type=str, default='ksc', choices=['ksc', 'scc', 'tsc', 'kec'])
+    parser.add_argument('--cri', type=str, default='ksc', choices=['ksc', 'scc', 'tsc', 'kec', 'deepgini', 'rt'])
     return parser.parse_args()
 
 

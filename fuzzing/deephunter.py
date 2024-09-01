@@ -9,10 +9,10 @@ import os
 import argparse, pickle
 import shutil
 
-from fuzzing.image_queue import ImageInputCorpus, TensorInputCorpus
-from fuzzing.fuzzone import build_fetch_function
-from fuzzing.queue import Seed
-from fuzzing.Fuzzer import Fuzzer
+from image_queue import ImageInputCorpus, TensorInputCorpus
+from fuzzone import build_fetch_function
+from queue import Seed
+from Fuzzer import Fuzzer
 from tools.mutator import Mutator
 
 

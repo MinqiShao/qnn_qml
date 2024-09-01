@@ -43,8 +43,8 @@ class Mutator():
             starty = y // 2 - rows // 2
             return res[starty:starty + rows, startx:startx + cols]
         elif params < 1:  # need to pad
-            sty = (rows - y) / 2
-            stx = (cols - x) / 2
+            sty = int((rows - y) / 2)
+            stx = int((cols - x) / 2)
             return np.pad(res, [(sty, rows - y - sty), (stx, cols - x - stx), (0, 0)], mode='constant',
                           constant_values=0)
         return res

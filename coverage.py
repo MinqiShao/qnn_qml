@@ -34,9 +34,10 @@ class Ksc:
         covered_num = torch.sum(cell_list).item()
         return covered_num / (self.state_num * self.k), cover_list
 
-    def rank(self, conf, depth, test_x, budget=0.1):
+    def rank(self, test_x, conf, depth, budget=0.1):
         select_num = int(budget * test_x.shape[0])
         _, cover_list = self.fit(test_x, conf, depth)
+        print('fitting completed!')
         subset = []
         lst = list(range(test_x.shape[0]))
         init = np.random.choice(range(test_x.shape[0]))
@@ -44,9 +45,9 @@ class Ksc:
         subset.append(init)  # 挑选出的样本
         max_cover_num = cover_list[init].sum().item()
         cover_last = cover_list[init]
-        while True:
+        while len(lst) > 0:
             flag = False
-            for idx in tqdm(lst):
+            for idx in lst:
                 tmp = torch.bitwise_or(cover_last, cover_list[idx])
                 now_cover_num = tmp.sum().item()
                 if now_cover_num > max_cover_num:
@@ -73,7 +74,7 @@ class Scc:
     def fit(self, test_x, conf, depth):
         upper_cover = torch.zeros((self.state_num,))
         lower_cover = torch.zeros((self.state_num,))
-        cover_list = torch.zeros((test_x.shape[0], self.state_num*2))
+        cover_list = torch.zeros((test_x.shape[0], self.state_num*2), dtype=torch.int)
         min_l, max_l, std_l = self.range_l['min_l'], self.range_l['max_l'], self.range_l['std_l']
         for i, x in enumerate(test_x):
             x = torch.flatten(x, start_dim=0)
@@ -89,17 +90,18 @@ class Scc:
 
     def rank(self, test_x, conf, depth, budget=0.1):
         _, cover_list = self.fit(test_x, conf, depth)
+        print('fitting completed!')
         select_num = int(budget * test_x.shape[0])
         subset = []
         lst = list(range(test_x.shape[0]))
         init = np.random.choice(range(test_x.shape[0]))
         lst.remove(init)
         subset.append(init)
-        max_cover_num = torch.sum(cover_list[init]).item()
+        max_cover_num = cover_list[init].sum().item()
         cover_last = cover_list[init]
-        while True:
+        while len(lst) > 0:
             flag = False
-            for idx in tqdm(lst):
+            for idx in lst:
                 tmp = torch.bitwise_or(cover_last, cover_list[idx])
                 cover = tmp.sum().item()
                 if cover > max_cover_num:
@@ -124,7 +126,7 @@ class Tsc:
 
     def fit(self, test_x, conf, depth):
         top_l = torch.zeros((self.state_num,))
-        top_list = torch.zeros((test_x.shape[0], self.state_num))
+        top_list = torch.zeros((test_x.shape[0], self.state_num), dtype=torch.int)
         for i, x in enumerate(test_x):
             x = torch.flatten(x, start_dim=0)
             p = block_out(x, conf, self.m_params, depth=depth)
@@ -136,6 +138,7 @@ class Tsc:
     def rank(self, test_x, conf, depth, budget=0.1):
         budget_num = int(budget*len(test_x))
         _, top = self.fit(test_x, conf, depth)
+        print('fitting completed!')
         init = np.random.choice(range(test_x.shape[0]))
         subset = []
         lst = list(range(len(test_x)))
@@ -143,9 +146,9 @@ class Tsc:
         subset.append(init)
         max_cover = torch.sum(top[init]).item()
         cover_now = top[init]
-        while True:
+        while len(lst) > 0:
             flag = False
-            for idx in tqdm(lst):
+            for idx in lst:
                 tmp = torch.bitwise_or(cover_now, top[idx])
                 cover1 = tmp.sum().item()
                 if cover1 > max_cover:
@@ -191,12 +194,13 @@ class Kec:
         lst.remove(init)
         subset.append(init)
         _, cover_list = self.fit(test_x, conf, depth)
+        print('fitting completed!')
         max_cover_num = 1
         cover_last = cover_list[init]
 
-        while True:
+        while len(lst) > 0:
             flag = False
-            for idx in tqdm(lst):
+            for idx in lst:
                 tmp = torch.bitwise_or(cover_last, cover_list[idx])
                 now_cover_num = tmp.sum().item()
                 if now_cover_num > max_cover_num:
@@ -232,12 +236,11 @@ class CoverageHandler:
         return self.handler.rank(test_x, conf, depth, budget)
 
     def update_cov(self, now_cover, new_m, conf, depth):
-        o_num = torch.sum(torch.any(now_cover, dim=0)).item()
+        o_num = now_cover.sum().item()
 
-        _, m_cover = self.handler.fit(torch.tensor([new_m]), conf, depth)
+        _, m_cover = self.handler.fit(new_m.unsqueeze(0), conf, depth)
         m_cover = m_cover.view(-1)
-        new_cover = torch.cat((now_cover, m_cover.unsqueeze(0)), dim=0)
-        n_num = torch.sum(torch.any(new_cover, dim=0)).item()
+        new_cover = torch.bitwise_or(now_cover, m_cover)
+        n_num = new_cover.sum().item()
 
         return new_cover, n_num, n_num > o_num
-

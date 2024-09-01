@@ -21,8 +21,8 @@ depth = depth_dict[conf.structure]
 
 def pre_data(model, x, y):
     model.eval()
-    y_preds = model.predict(x).detach().numpy()
-    acc = accuracy_score(y.numpy().tolist(), y_preds.argmax(axis=1).tolist())
+    y_preds = model.predict(x).detach()
+    acc = accuracy_score(y.numpy().tolist(), y_preds.numpy().argmax(axis=1).tolist())
     return acc, y_preds
 
 
@@ -48,9 +48,10 @@ def deepgini(test_x, test_y, budget=0.1):
 def exp(m='ksc', b=0.1):
     test_x, test_y = load_part_data(conf, num_data=conf.num_test)
     if conf.with_adv:
-        _, adv_imgs = load_adv_imgs(conf)
+        _, adv_imgs, ori_y = load_adv_imgs(conf)
         adv_imgs = adv_imgs.squeeze(1)
         test_x = torch.cat((test_x, adv_imgs), dim=0)
+        test_y = torch.cat((test_y, ori_y))
     indices = torch.randperm(len(test_x))
     test_x = test_x[indices]
     test_y = test_y[indices]
@@ -74,8 +75,8 @@ def exp(m='ksc', b=0.1):
 
 
 if __name__ == '__main__':
-    m = 'ksc'  # ksc scc tsc kec deepgini
-    b = 0.1
-    gt, preds = exp(m, b)
+    # m = 'ksc'  # ksc scc tsc kec deepgini
+    b = 0.5  # budget
+    gt, preds = exp(conf.cri, b)
     a = apfd(gt, preds)
     print(f'APFD: {a}')

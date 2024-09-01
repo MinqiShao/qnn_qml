@@ -207,7 +207,7 @@ if __name__ == '__main__':
     test_x, test_y = load_part_data(conf, num_data=conf.num_test)
 
     if conf.with_adv:
-        _, adv_imgs = load_adv_imgs(conf)
+        _, adv_imgs, _ = load_adv_imgs(conf)
         # todo 是否保留成功的部分
         adv_imgs = adv_imgs.squeeze(1)
         #test_x = adv_imgs
