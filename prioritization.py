@@ -29,7 +29,7 @@ def pre_data(model, x, y):
 def apfd(y, y_preds):
     y_preds = y_preds.argmax(axis=1)
     f = (y != y_preds).int()
-    o_indices = torch.where(f == 1)[0]  # 发生错误的位置
+    o_indices = torch.where(f == 1)[0]+1  # 发生错误的位置
     k = torch.sum(f).item()  # k 预测错误的总数
     n = y.shape[0]
     sum_o = o_indices.sum().item()
@@ -63,20 +63,20 @@ def exp(m='ksc', b=0.1):
     state_num = 2**qubit_dict[conf.structure]
 
     if m == 'deepgini':
-        subset = deepgini(test_x, test_y)
+        subset = deepgini(test_x, test_y, budget=b)
     else:
         handler = CoverageHandler(model, m_params, state_num, profile_path, cri=conf.cri)
         subset, _ = handler.rank(test_x, conf, depth, budget=b)
 
     acc, preds = pre_data(model, test_x[subset], test_y[subset])
 
-    print(f'criteria {m}, budget: {b}, acc: {acc*100}%')
+    print(f'criteria {m}, budget: {b}, subset_acc: {acc*100}%')
     return test_y[subset], preds
 
 
 if __name__ == '__main__':
     # m = 'ksc'  # ksc scc tsc kec deepgini
-    b = 0.5  # budget
+    b = 1.0  # budget
     gt, preds = exp(conf.cri, b)
     a = apfd(gt, preds)
     print(f'APFD: {a}')

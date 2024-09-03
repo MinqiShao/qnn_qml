@@ -151,4 +151,5 @@ def load_correct_data(conf, model, num_data=100):
     correct_idx = torch.where(y == y_preds)[0]
     x, y = x[correct_idx], y[correct_idx]
 
+    class_idx = range(len(class_idx))
     return sample_data(x, y, class_idx, scale=num_data)
